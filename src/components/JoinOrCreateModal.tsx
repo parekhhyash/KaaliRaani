@@ -76,7 +76,7 @@ export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
   };
 
   return (
-    <div className={`w-full max-w-lg mx-auto p-4 sm:p-6 text-white transition-opacity duration-300 ${isPeekingBg ? 'opacity-20 hover:opacity-100' : 'opacity-100'}`}>
+    <div className={`w-full max-w-lg mx-auto lg:mx-0 p-4 sm:p-6 text-white transition-opacity duration-300 ${isPeekingBg ? 'opacity-20 hover:opacity-100' : 'opacity-100'}`}>
       {/* Branding Hero */}
       <div className="text-center mb-8 relative z-10">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">Kaali Raani</h1>

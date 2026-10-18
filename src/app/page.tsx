@@ -257,19 +257,14 @@ function KaaliRaaniGame() {
 
   return (
     <div className="relative min-h-screen bg-black text-white flex flex-col justify-between selection:bg-white selection:text-black overflow-x-hidden">
-      {/* Background Wallpaper on Landing Page */}
+      {/* Background Wallpaper on Landing Page (pure image with no gradients) */}
       {!roomState && (
         <div
           className="fixed inset-0 z-0 bg-cover bg-center sm:bg-right bg-no-repeat transition-all duration-700 ease-in-out pointer-events-none"
           style={{
             backgroundImage: `url(${selectedBg})`,
           }}
-        >
-          {/* Subtle vignette overlays to blend edges seamlessly into pure black */}
-          <div className="absolute inset-0 bg-black/45 backdrop-blur-[0.5px]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/70" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-        </div>
+        />
       )}
 
       {/* Top Navigation */}
@@ -296,18 +291,20 @@ function KaaliRaaniGame() {
 
         {/* 1. LANDING: CREATE OR JOIN ROOM */}
         {!roomState ? (
-          <JoinOrCreateModal
-            initialRoomCode={initialRoomFromUrl}
-            hasPreviousSession={!!savedSession}
-            previousRoomCode={savedSession?.roomCode}
-            previousUsername={savedSession?.username}
-            onCreateRoom={handleCreateRoom}
-            onJoinRoom={handleJoinRoom}
-            onResumeSession={handleResumeSession}
-            onOpenRules={() => setIsRulesOpen(true)}
-            currentBg={selectedBg}
-            onSelectBg={handleSelectBg}
-          />
+          <div className="w-full flex items-center justify-center lg:justify-start lg:pl-16 xl:pl-28 2xl:pl-36">
+            <JoinOrCreateModal
+              initialRoomCode={initialRoomFromUrl}
+              hasPreviousSession={!!savedSession}
+              previousRoomCode={savedSession?.roomCode}
+              previousUsername={savedSession?.username}
+              onCreateRoom={handleCreateRoom}
+              onJoinRoom={handleJoinRoom}
+              onResumeSession={handleResumeSession}
+              onOpenRules={() => setIsRulesOpen(true)}
+              currentBg={selectedBg}
+              onSelectBg={handleSelectBg}
+            />
+          </div>
         ) : (
           <>
             {/* 2. LOBBY */}
@@ -432,7 +429,11 @@ function KaaliRaaniGame() {
       />
 
       {/* Footer */}
-      <footer className="w-full border-t border-zinc-900 py-3.5 px-4 text-center text-xs text-zinc-500 font-mono flex items-center justify-center">
+      <footer
+        className={`w-full py-3.5 px-4 text-center text-xs text-zinc-500 font-mono flex items-center justify-center ${
+          roomState ? 'border-t border-zinc-900 bg-black/60 backdrop-blur-sm' : 'bg-transparent'
+        }`}
+      >
         <span>
           Made with ❤️ by{' '}
           <a

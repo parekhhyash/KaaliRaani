@@ -76,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   }[peerStatus];
 
   return (
-    <header className="w-full bg-black/90 backdrop-blur-md border-b border-zinc-800 sticky top-0 z-40 px-3 sm:px-6 py-2.5 flex items-center justify-between text-white">
+    <header className="w-full bg-transparent sticky top-0 z-40 px-3 sm:px-6 py-2.5 flex items-center justify-between text-white">
       {/* Brand & Status */}
       <div className="flex items-center space-x-3">
         <div className="flex items-center space-x-2">
