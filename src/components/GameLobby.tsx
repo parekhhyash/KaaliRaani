@@ -60,7 +60,7 @@ export const GameLobby: React.FC<GameLobbyProps> = ({
   };
 
   const totalPlayers = players.length;
-  const maxPlayers = 4;
+  const maxPlayers = settings.maxPlayers || 4;
   const emptySlots = Math.max(0, maxPlayers - totalPlayers);
 
   return (
@@ -73,7 +73,7 @@ export const GameLobby: React.FC<GameLobbyProps> = ({
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Kaali Raani</h1>
         <p className="text-sm text-zinc-400 mt-1 max-w-md mx-auto">
-          The 150-point classic Indian trick-taking card game. 4 players, 1 declarer, and 1 secret partner.
+          The 150-point classic Indian trick-taking card game. 2 to 6 players, 1 declarer, and 1 secret partner.
         </p>
       </div>
 
@@ -143,35 +143,63 @@ export const GameLobby: React.FC<GameLobbyProps> = ({
             )}
           </div>
 
-          {/* Quick Info */}
-          <div className="flex flex-col justify-center text-xs text-zinc-400 space-y-1">
-            <div>
-              • Minimum Opening Bid:{' '}
-              <strong className="text-white font-mono">{settings.minBid} points</strong>
-            </div>
-            <div>
-              • Bid Increment:{' '}
-              <strong className="text-white font-mono">+{settings.bidIncrement} points</strong>
-            </div>
-            <div>
-              • Total Deck Points:{' '}
-              <strong className="text-white font-mono">150 points</strong>
-            </div>
+          {/* Room Capacity (2 to 6 Players) */}
+          <div>
+            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+              Room Capacity: <span className="text-white font-mono font-bold">{maxPlayers} Players</span>
+            </label>
+            {isHost ? (
+              <div className="flex items-center space-x-1.5">
+                {[2, 3, 4, 5, 6].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => {
+                      sounds.playClick();
+                      onUpdateSettings({ maxPlayers: num });
+                    }}
+                    className={`flex-1 py-2 rounded-lg text-xs font-mono font-bold transition-all border ${
+                      maxPlayers === num
+                        ? 'bg-white text-black border-white shadow'
+                        : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white'
+                    }`}
+                  >
+                    {num}P
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-300 font-mono">
+                {maxPlayers} Players Max
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Distribution Details Note */}
+        <div className="mt-4 pt-3 border-t border-zinc-800/80 text-[11px] font-mono text-zinc-400 flex flex-wrap items-center justify-between gap-2">
+          <span>• 150 Points Total (♠Q=30, A=15, 10=10, 5=5)</span>
+          <span className="text-zinc-500">
+            {totalPlayers === 6 && '6 Players: 8 cards each (all 4 twos removed)'}
+            {totalPlayers === 5 && '5 Players: 10 cards each (2 twos removed)'}
+            {totalPlayers === 4 && '4 Players: 13 cards each (full deck)'}
+            {totalPlayers === 3 && '3 Players: 17 cards each (1 two removed)'}
+            {totalPlayers === 2 && '2 Players: 26 cards each (full deck)'}
+            {totalPlayers < 2 && 'Even distribution removes only 0-pt 2s to preserve 150 points'}
+          </span>
         </div>
       </div>
 
-      {/* Players List (4 Seats) */}
+      {/* Players List (2-6 Seats) */}
       <div className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-6 mb-8 shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <Users className="w-4 h-4 text-white" />
             <h3 className="text-sm font-bold uppercase tracking-wider font-mono text-zinc-300">
-              Players ({totalPlayers} / 4)
+              Players ({totalPlayers} / {maxPlayers})
             </h3>
           </div>
 
-          {isHost && totalPlayers < 4 && (
+          {isHost && totalPlayers < maxPlayers && (
             <button
               onClick={() => {
                 sounds.playClick();
@@ -263,18 +291,34 @@ export const GameLobby: React.FC<GameLobbyProps> = ({
       {/* Start Button Area */}
       <div className="w-full flex flex-col items-center">
         {isHost ? (
-          <button
-            onClick={() => {
-              sounds.playClick();
-              onStartGame();
-            }}
-            className="w-full max-w-md py-4 bg-white text-black hover:bg-zinc-200 font-extrabold text-base rounded-xl transition-all shadow-2xl flex items-center justify-center space-x-2 hover:scale-[1.01]"
-          >
-            <Play className="w-5 h-5 fill-current" />
-            <span>
-              {totalPlayers === 4 ? 'Start Kaali Raani Match' : `Fill Remaining (${emptySlots}) with Bots & Start`}
-            </span>
-          </button>
+          <div className="w-full max-w-md flex flex-col items-center gap-2">
+            <button
+              onClick={() => {
+                sounds.playClick();
+                onStartGame();
+              }}
+              className="w-full py-4 bg-white text-black hover:bg-zinc-200 font-extrabold text-base rounded-xl transition-all shadow-2xl flex items-center justify-center space-x-2 hover:scale-[1.01]"
+            >
+              <Play className="w-5 h-5 fill-current" />
+              <span>
+                {totalPlayers >= 2
+                  ? `Start Match (${totalPlayers} Players)`
+                  : 'Add Bot & Start (2 Players)'}
+              </span>
+            </button>
+            {totalPlayers < maxPlayers && totalPlayers >= 2 && (
+              <button
+                onClick={() => {
+                  sounds.playClick();
+                  onAddBot();
+                }}
+                className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 py-1 px-3 rounded-lg hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add AI Bot to fill ({totalPlayers}/{maxPlayers})</span>
+              </button>
+            )}
+          </div>
         ) : (
           <div className="text-center p-4 bg-zinc-950 border border-zinc-800 rounded-xl max-w-md w-full">
             <div className="inline-block animate-spin mr-2">♠</div>

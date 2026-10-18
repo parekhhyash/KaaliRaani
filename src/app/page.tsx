@@ -15,6 +15,8 @@ import { GameBoard } from '@/components/GameBoard';
 import { RoundEndModal } from '@/components/RoundEndModal';
 import { FinalLeaderboardModal } from '@/components/FinalLeaderboardModal';
 
+import { ROOM_INACTIVITY_TIMEOUT_MS } from '@/lib/constants';
+
 interface SavedSession {
   roomCode: string;
   username: string;
@@ -44,12 +46,24 @@ function KaaliRaaniGame() {
   const managerRef = useRef<PeerGameManager | null>(null);
 
   useEffect(() => {
-    // Check local storage for previous session
+    // Check local storage for previous session with 15-min inactivity check
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('kaali_raani_session');
         if (stored) {
           const parsed: SavedSession = JSON.parse(stored);
+          const cachedStateStr = localStorage.getItem(`kr_state_${parsed.roomCode}`);
+          if (cachedStateStr) {
+            try {
+              const cachedState = JSON.parse(cachedStateStr);
+              if (cachedState.lastActiveAt && Date.now() - cachedState.lastActiveAt > ROOM_INACTIVITY_TIMEOUT_MS) {
+                localStorage.removeItem('kaali_raani_session');
+                localStorage.removeItem(`kr_state_${parsed.roomCode}`);
+                setSavedSession(null);
+                return;
+              }
+            } catch {}
+          }
           setSavedSession(parsed);
         }
       } catch {}
@@ -61,6 +75,30 @@ function KaaliRaaniGame() {
       }
     };
   }, []);
+
+  // Periodic room inactivity check
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (roomState && roomState.lastActiveAt) {
+        if (Date.now() - roomState.lastActiveAt > ROOM_INACTIVITY_TIMEOUT_MS) {
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.removeItem('kaali_raani_session');
+              localStorage.removeItem(`kr_state_${roomState.roomCode}`);
+            } catch {}
+          }
+          managerRef.current?.destroy();
+          setManager(null);
+          setRoomState(null);
+          setSavedSession(null);
+          setPeerStatus('disconnected');
+          setStatusMessage('Game room closed due to 15 minutes of inactivity.');
+        }
+      }
+    }, 20000);
+
+    return () => clearInterval(interval);
+  }, [roomState]);
 
   const initManager = () => {
     if (managerRef.current) {
@@ -250,6 +288,7 @@ function KaaliRaaniGame() {
                 isDeclarer={isDeclarer}
                 declarerUsername={declarerPlayer?.username || 'Declarer'}
                 highestBid={roomState.highestBid}
+                totalPlayers={roomState.players.length}
                 myHand={myPlayer?.hand || []}
                 isCardsHidden={isCardsHidden}
                 onToggleHideCards={handleToggleHideCards}

@@ -86,6 +86,7 @@ export interface GameSettings {
   bidIncrement: number; // 5
   maxBid: number; // 150
   autoFillBots: boolean;
+  maxPlayers: number; // 2 to 6 players
 }
 
 export interface GameActionLog {
@@ -100,6 +101,7 @@ export interface RoomState {
   phase: GamePhase;
   currentRound: number;
   totalRounds: number;
+  totalTricks: number; // dynamically computed based on player count
   players: Player[];
   settings: GameSettings;
   
@@ -125,7 +127,8 @@ export interface RoomState {
   roundResults: RoundResult[];
   actionLogs: GameActionLog[];
 
-  // Sync version
+  // Inactivity & Sync version
+  lastActiveAt: number;
   updatedAt: number;
 }
 

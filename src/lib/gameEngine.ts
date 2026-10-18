@@ -39,6 +39,7 @@ export function createInitialRoomState(
     phase: 'lobby',
     currentRound: 0,
     totalRounds: mergedSettings.totalRounds,
+    totalTricks: 13,
     players: [host],
     settings: mergedSettings,
     highestBid: 0,
@@ -54,12 +55,14 @@ export function createInitialRoomState(
         type: 'system',
       },
     ],
+    lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
 }
 
 export function addPlayerToRoom(state: RoomState, playerInfo: { id: string; username: string }): RoomState {
-  if (state.players.length >= MAX_PLAYERS) {
+  const maxAllowed = state.settings.maxPlayers || MAX_PLAYERS;
+  if (state.players.length >= maxAllowed) {
     // Check if player is rejoining with same username
     const existing = state.players.find(
       (p) => p.username.trim().toLowerCase() === playerInfo.username.trim().toLowerCase()
@@ -106,6 +109,7 @@ export function addPlayerToRoom(state: RoomState, playerInfo: { id: string; user
         type: 'system',
       },
     ],
+    lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
 }
@@ -151,17 +155,19 @@ export function reconnectPlayer(state: RoomState, username: string, newId: strin
         type: 'system',
       },
     ],
+    lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
 }
 
 export function addBotPlayer(state: RoomState): RoomState {
-  if (state.players.length >= MAX_PLAYERS) {
+  const maxAllowed = state.settings.maxPlayers || MAX_PLAYERS;
+  if (state.players.length >= maxAllowed) {
     return state;
   }
 
   const botIndex = state.players.filter((p) => p.isBot).length + 1;
-  const botNames = ['Bot Vikram', 'Bot Ananya', 'Bot Kabir', 'Bot Priya', 'Bot Rahul'];
+  const botNames = ['Bot Vikram', 'Bot Ananya', 'Bot Kabir', 'Bot Priya', 'Bot Rahul', 'Bot Aryan'];
   const name = botNames[botIndex - 1] || `Bot ${botIndex}`;
 
   const botPlayer: Player = {
@@ -192,6 +198,7 @@ export function addBotPlayer(state: RoomState): RoomState {
         type: 'system',
       },
     ],
+    lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
 }
@@ -203,15 +210,17 @@ export function removeBotPlayer(state: RoomState, botId: string): RoomState {
   return {
     ...state,
     players: reindexed,
+    lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
 }
 
 export function startRound(state: RoomState, roundNumber: number): RoomState {
-  // Deal cards to all 4 players
+  const numPlayers = state.players.length;
+  // Deal cards to all players
   const deck = createDeck();
   const shuffled = shuffleDeck(deck);
-  const hands = dealCards(shuffled, MAX_PLAYERS);
+  const { hands, totalTricks } = dealCards(shuffled, numPlayers);
 
   const updatedPlayers: Player[] = state.players.map((p, index) => ({
     ...p,
@@ -224,13 +233,14 @@ export function startRound(state: RoomState, roundNumber: number): RoomState {
   }));
 
   // First bidder rotates with round
-  const startingBidderIndex = (roundNumber - 1) % MAX_PLAYERS;
+  const startingBidderIndex = (roundNumber - 1) % numPlayers;
   const startingBidder = updatedPlayers[startingBidderIndex];
 
   return {
     ...state,
     phase: 'bidding',
     currentRound: roundNumber,
+    totalTricks,
     players: updatedPlayers,
     highestBid: 0,
     highestBidderId: undefined,
@@ -259,6 +269,7 @@ export function startRound(state: RoomState, roundNumber: number): RoomState {
         type: 'bid',
       },
     ],
+    lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
 }
@@ -298,6 +309,7 @@ export function placeBid(state: RoomState, playerId: string, amount: number): Ro
         highestBid: amount,
         highestBidderId: playerId,
         actionLogs: logs,
+        lastActiveAt: Date.now(),
       },
       playerId
     );
@@ -313,6 +325,7 @@ export function placeBid(state: RoomState, playerId: string, amount: number): Ro
     highestBidderId: playerId,
     currentBidderId: nextBidder?.id,
     actionLogs: logs,
+    lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
 }
@@ -350,11 +363,12 @@ export function passBid(state: RoomState, playerId: string): RoomState {
           ...state,
           players: updatedPlayers,
           actionLogs: logs,
+          lastActiveAt: Date.now(),
         },
         state.highestBidderId || winner.id
       );
     } else {
-      // All 3 previous passed, remaining player forced at minimum bid
+      // All previous passed, remaining player forced at minimum bid
       return finalizeAuction(
         {
           ...state,
@@ -372,6 +386,7 @@ export function passBid(state: RoomState, playerId: string): RoomState {
               type: 'bid',
             },
           ],
+          lastActiveAt: Date.now(),
         },
         winner.id
       );
@@ -388,6 +403,7 @@ export function passBid(state: RoomState, playerId: string): RoomState {
         highestBid: state.settings.minBid,
         highestBidderId: declarer.id,
         actionLogs: logs,
+        lastActiveAt: Date.now(),
       },
       declarer.id
     );
@@ -401,6 +417,7 @@ export function passBid(state: RoomState, playerId: string): RoomState {
     players: updatedPlayers,
     currentBidderId: nextBidder?.id,
     actionLogs: logs,
+    lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
 }
@@ -435,6 +452,7 @@ function finalizeAuction(state: RoomState, declarerId: string): RoomState {
         type: 'trump',
       },
     ],
+    lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
 }
@@ -451,12 +469,14 @@ export function selectTrumpAndPartner(
   const declarer = state.players.find((p) => p.id === declarerId);
   const declarerName = declarer ? declarer.username : 'Declarer';
 
-  // Identify partner by card held in hand
+  // Identify partner by card held in hand (in 2-player games, it's 1v1 so declarer is solo)
   let partnerId = declarerId;
-  for (const player of state.players) {
-    if (player.hand.some((c) => c.id === calledCard.id)) {
-      partnerId = player.id;
-      break;
+  if (state.players.length > 2) {
+    for (const player of state.players) {
+      if (player.hand.some((c) => c.id === calledCard.id)) {
+        partnerId = player.id;
+        break;
+      }
     }
   }
 
@@ -482,6 +502,7 @@ export function selectTrumpAndPartner(
         type: 'trump',
       },
     ],
+    lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
 }
@@ -551,9 +572,11 @@ export function playCard(state: RoomState, playerId: string, cardId: string): Ro
     cards: updatedPlayedCards,
   };
 
-  // If trick is NOT complete (less than 4 players played)
-  if (updatedPlayedCards.length < MAX_PLAYERS) {
-    const nextSeatIndex = (player.seatIndex + 1) % MAX_PLAYERS;
+  const numPlayers = state.players.length;
+
+  // If trick is NOT complete (less than all players played)
+  if (updatedPlayedCards.length < numPlayers) {
+    const nextSeatIndex = (player.seatIndex + 1) % numPlayers;
     const nextPlayer = updatedPlayers.find((p) => p.seatIndex === nextSeatIndex);
 
     return {
@@ -563,11 +586,12 @@ export function playCard(state: RoomState, playerId: string, cardId: string): Ro
       currentTrick: updatedTrick,
       currentTurnPlayerId: nextPlayer?.id,
       actionLogs: logs,
+      lastActiveAt: Date.now(),
       updatedAt: Date.now(),
     };
   }
 
-  // Trick IS complete (4 cards played)
+  // Trick IS complete (all players played)
   const { winningPlay, trickPoints } = evaluateTrick(updatedPlayedCards, state.trumpSuit);
 
   const trickWinnerIndex = updatedPlayers.findIndex((p) => p.id === winningPlay.playerId);
@@ -594,7 +618,8 @@ export function playCard(state: RoomState, playerId: string, cardId: string): Ro
   });
 
   const nextTrickNumber = state.currentTrick.trickNumber + 1;
-  const isRoundOver = nextTrickNumber > 13 || updatedPlayers.every((p) => p.hand.length === 0);
+  const maxTricks = state.totalTricks || Math.floor(52 / numPlayers);
+  const isRoundOver = nextTrickNumber > maxTricks || updatedPlayers.every((p) => p.hand.length === 0);
 
   if (isRoundOver) {
     return finalizeRound({
@@ -605,6 +630,7 @@ export function playCard(state: RoomState, playerId: string, cardId: string): Ro
       previousTrick: completedTrick,
       completedTricks: [...state.completedTricks, completedTrick],
       actionLogs: logs,
+      lastActiveAt: Date.now(),
     });
   }
 
@@ -622,6 +648,7 @@ export function playCard(state: RoomState, playerId: string, cardId: string): Ro
     completedTricks: [...state.completedTricks, completedTrick],
     currentTurnPlayerId: winningPlay.playerId,
     actionLogs: logs,
+    lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
 }
@@ -719,6 +746,7 @@ export function finalizeRound(state: RoomState): RoomState {
     isPartnerRevealed: true,
     roundResults: [...state.roundResults, roundResult],
     actionLogs: logs,
+    lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
 }

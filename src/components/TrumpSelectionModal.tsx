@@ -11,6 +11,7 @@ interface TrumpSelectionModalProps {
   isDeclarer: boolean;
   declarerUsername: string;
   highestBid: number;
+  totalPlayers?: number;
   myHand: Card[];
   isCardsHidden?: boolean;
   onToggleHideCards?: () => void;
@@ -21,6 +22,7 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
   isDeclarer,
   declarerUsername,
   highestBid,
+  totalPlayers = 4,
   myHand,
   isCardsHidden = false,
   onToggleHideCards,
@@ -38,7 +40,14 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
     points: CARD_POINTS[calledCardId] || 0,
   };
 
+  const safePlayers = Math.max(2, Math.min(6, totalPlayers));
+  const remainder = 52 % safePlayers;
+  const twosOrder = ['clubs-2', 'diamonds-2', 'hearts-2', 'spades-2'];
+  const removedCardIds = new Set(twosOrder.slice(0, remainder));
+  const isCardRemoved = removedCardIds.has(calledCardId);
+
   const handleConfirm = () => {
+    if (isCardRemoved) return;
     sounds.playTrump();
     onConfirm(selectedSuit, calledCard);
   };
@@ -243,10 +252,20 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
         </div>
 
         {/* Confirm Button */}
-        <div className="pt-4 border-t border-zinc-800 flex justify-end">
+        <div className="pt-4 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+          {isCardRemoved ? (
+            <div className="text-xs text-rose-400 font-mono">
+              ⚠️ {calledCard.rank} of {calledCard.suit} was removed from the deck to distribute cards evenly among {totalPlayers} players. Please pick another card.
+            </div>
+          ) : (
+            <div className="text-xs text-zinc-500 font-mono">
+              The player holding this card will be your secret teammate.
+            </div>
+          )}
           <button
             onClick={handleConfirm}
-            className="w-full sm:w-auto px-8 py-3 bg-white text-black font-extrabold rounded-xl hover:bg-zinc-200 transition-all text-sm flex items-center justify-center space-x-2 shadow-xl hover:scale-[1.01]"
+            disabled={isCardRemoved}
+            className="w-full sm:w-auto px-8 py-3 bg-white text-black font-extrabold rounded-xl hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm flex items-center justify-center space-x-2 shadow-xl hover:scale-[1.01]"
           >
             <Check className="w-4 h-4" />
             <span>Confirm Hukum & Start Playing</span>

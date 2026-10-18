@@ -1,6 +1,7 @@
 'use client';
 
 import { RoomState, P2PMessage, GameSettings, Suit, Card } from '@/types/game';
+import { ROOM_INACTIVITY_TIMEOUT_MS, MAX_PLAYERS } from '../constants';
 import {
   createInitialRoomState,
   addPlayerToRoom,
@@ -37,9 +38,35 @@ export class PeerGameManager {
   private onChatMessageCallbacks: ((msg: { username: string; text: string; timestamp: number }) => void)[] = [];
   
   private botTimer: NodeJS.Timeout | null = null;
+  private inactivityInterval: NodeJS.Timeout | null = null;
   private isDestroyed: boolean = false;
 
-  constructor() {}
+  constructor() {
+    this.startInactivityChecker();
+  }
+
+  private startInactivityChecker() {
+    if (typeof window === 'undefined') return;
+    this.inactivityInterval = setInterval(() => {
+      if (this.isDestroyed) return;
+      if (this.currentState && this.currentState.lastActiveAt) {
+        if (Date.now() - this.currentState.lastActiveAt > ROOM_INACTIVITY_TIMEOUT_MS) {
+          this.handleInactivityExpiration();
+        }
+      }
+    }, 30000);
+  }
+
+  private handleInactivityExpiration() {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(`kr_state_${this.roomCode}`);
+        localStorage.removeItem('kaali_raani_session');
+      } catch {}
+    }
+    this.notifyStatus('disconnected', 'Room closed after 15 minutes of inactivity.');
+    this.destroy();
+  }
 
   public subscribeState(cb: (state: RoomState) => void) {
     this.onStateChangeCallbacks.push(cb);
@@ -112,7 +139,13 @@ export class PeerGameManager {
           if (cached) {
             try {
               const parsed = JSON.parse(cached);
-              initialState = reconnectPlayer(parsed, this.username, id);
+              // Clean up if inactive for > 15 minutes
+              if (parsed.lastActiveAt && Date.now() - parsed.lastActiveAt > ROOM_INACTIVITY_TIMEOUT_MS) {
+                localStorage.removeItem(`kr_state_${this.roomCode}`);
+                initialState = createInitialRoomState(this.roomCode, { id, username: this.username }, settings);
+              } else {
+                initialState = reconnectPlayer(parsed, this.username, id);
+              }
             } catch {
               initialState = createInitialRoomState(this.roomCode, { id, username: this.username }, settings);
             }
@@ -417,8 +450,8 @@ export class PeerGameManager {
     if (!this.isHost || !this.currentState) return;
     let state = this.currentState;
 
-    // If less than 4 players, auto fill with bots
-    while (state.players.length < 4) {
+    // Must have at least 2 players to start
+    if (state.players.length < 2) {
       state = addBotPlayer(state);
     }
 
@@ -450,6 +483,8 @@ export class PeerGameManager {
 
   public addBot() {
     if (!this.isHost || !this.currentState) return;
+    const maxAllowed = this.currentState.settings.maxPlayers || MAX_PLAYERS;
+    if (this.currentState.players.length >= maxAllowed) return;
     const updated = addBotPlayer(this.currentState);
     this.broadcastState(updated);
   }
@@ -549,6 +584,7 @@ export class PeerGameManager {
   public destroy() {
     this.isDestroyed = true;
     if (this.botTimer) clearTimeout(this.botTimer);
+    if (this.inactivityInterval) clearInterval(this.inactivityInterval);
     try {
       if (this.peer) this.peer.destroy();
     } catch {}

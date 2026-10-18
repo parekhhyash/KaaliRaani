@@ -28,13 +28,51 @@ export function shuffleDeck(deck: Card[]): Card[] {
   return shuffled;
 }
 
-export function dealCards(shuffledDeck: Card[], numPlayers: number = 4): Card[][] {
+/**
+ * Prepares the deck for an even distribution among 2 to 6 players
+ * by removing only 2's cards (which carry 0 points, preserving the 150 points).
+ * - 6 players: removes 4 twos -> 48 cards (8 cards each, 8 tricks)
+ * - 5 players: removes 2 twos -> 50 cards (10 cards each, 10 tricks)
+ * - 4 players: removes 0 twos -> 52 cards (13 cards each, 13 tricks)
+ * - 3 players: removes 1 two  -> 51 cards (17 cards each, 17 tricks)
+ * - 2 players: removes 0 twos -> 52 cards (26 cards each, 26 tricks)
+ */
+export function prepareDeckForPlayers(
+  deck: Card[],
+  numPlayers: number
+): { deck: Card[]; cardsPerPlayer: number; totalTricks: number } {
+  const safePlayers = Math.max(2, Math.min(6, numPlayers));
+  const remainder = deck.length % safePlayers;
+
+  // We only remove 2's cards to make the distribution even
+  const twosOrder = ['clubs-2', 'diamonds-2', 'hearts-2', 'spades-2'];
+  const removedCardIds = new Set(twosOrder.slice(0, remainder));
+
+  const filteredDeck = deck.filter((c) => !removedCardIds.has(c.id));
+  const cardsPerPlayer = Math.floor(filteredDeck.length / safePlayers);
+
+  return {
+    deck: filteredDeck,
+    cardsPerPlayer,
+    totalTricks: cardsPerPlayer,
+  };
+}
+
+export function dealCards(
+  shuffledDeck: Card[],
+  numPlayers: number = 4
+): { hands: Card[][]; totalTricks: number } {
+  const { deck, totalTricks } = prepareDeckForPlayers(shuffledDeck, numPlayers);
   const hands: Card[][] = Array.from({ length: numPlayers }, () => []);
-  shuffledDeck.forEach((card, index) => {
+
+  deck.forEach((card, index) => {
     hands[index % numPlayers].push(card);
   });
 
-  return hands.map(sortHand);
+  return {
+    hands: hands.map(sortHand),
+    totalTricks,
+  };
 }
 
 // Order suits: Spades, Hearts, Clubs, Diamonds

@@ -96,7 +96,7 @@ export const BiddingModal: React.FC<BiddingModalProps> = ({
         </div>
 
         {/* Players Bidding Status Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-4 border-b border-zinc-800/80">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 sm:gap-3 py-4 border-b border-zinc-800/80">
           {players.map((p) => {
             const isTurn = p.id === currentBidderId;
             const isHighest = p.id === highestBidderId;

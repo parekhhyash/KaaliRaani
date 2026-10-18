@@ -64,6 +64,9 @@ export const DEFAULT_SETTINGS: GameSettings = {
   bidIncrement: 5,
   maxBid: 150,
   autoFillBots: false,
+  maxPlayers: 4,
 };
 
-export const MAX_PLAYERS = 4;
+export const MIN_PLAYERS = 2;
+export const MAX_PLAYERS = 6;
+export const ROOM_INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes

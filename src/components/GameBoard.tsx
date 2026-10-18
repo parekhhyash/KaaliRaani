@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RoomState, Card, Player, PlayedCard } from '@/types/game';
+import { RoomState, Card, Player } from '@/types/game';
 import { CardView } from './CardView';
 import { SUIT_SYMBOLS } from '@/lib/constants';
 import { isLegalPlay } from '@/lib/deck';
@@ -35,6 +35,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     declarerId,
     partnerId,
     highestBid,
+    totalTricks,
     actionLogs,
   } = state;
 
@@ -42,8 +43,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const [peekCardId, setPeekCardId] = useState<string | null>(null);
 
   const me = players.find((p) => p.id === myPlayerId) || players[0];
-  const mySeat = me.seatIndex;
   const isMyTurn = currentTurnPlayerId === myPlayerId;
+  const opponents = players.filter((p) => p.id !== me.id);
 
   // Sound trigger on partner reveal
   useEffect(() => {
@@ -51,20 +52,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       sounds.playPartnerReveal();
     }
   }, [isPartnerRevealed]);
-
-  // Arrange players relative to current user:
-  // Bottom: Me (index 0 offset)
-  // Left: (mySeat + 1) % 4
-  // Top: (mySeat + 2) % 4
-  // Right: (mySeat + 3) % 4
-  const getPlayerAtOffset = (offset: number): Player | undefined => {
-    const seat = (mySeat + offset) % 4;
-    return players.find((p) => p.seatIndex === seat);
-  };
-
-  const leftPlayer = getPlayerAtOffset(1);
-  const topPlayer = getPlayerAtOffset(2);
-  const rightPlayer = getPlayerAtOffset(3);
 
   const handleCardClick = (card: Card) => {
     if (isCardsHidden) {
@@ -83,8 +70,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     }
   };
 
-  const renderPlayerBadge = (player?: Player) => {
-    if (!player) return null;
+  const renderPlayerBadge = (player: Player, compact: boolean = false) => {
     const isTurn = player.id === currentTurnPlayerId;
     const isDeclarer = player.id === declarerId;
     const isPartner = isPartnerRevealed && player.id === partnerId;
@@ -92,59 +78,63 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
     return (
       <div
-        className={`flex items-center space-x-2.5 p-2 sm:p-2.5 rounded-xl border transition-all ${
+        key={player.id}
+        className={`flex items-center space-x-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl border transition-all ${
           isTurn
-            ? 'bg-zinc-900 border-white shadow-lg ring-1 ring-white/50 scale-105'
+            ? 'bg-zinc-900 border-white shadow-xl ring-2 ring-white/60 scale-[1.02]'
             : 'bg-zinc-950/90 border-zinc-800'
         }`}
       >
-        <div className="w-8 h-8 rounded-lg bg-black border border-zinc-700 flex items-center justify-center font-bold text-xs text-white">
+        <div
+          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-black border ${
+            isTurn ? 'border-white text-white' : 'border-zinc-700 text-zinc-400'
+          } flex items-center justify-center font-bold text-xs`}
+        >
           {player.isBot ? <Bot className="w-4 h-4 text-zinc-400" /> : player.seatIndex + 1}
         </div>
 
         <div className="flex flex-col text-left">
           <div className="flex items-center space-x-1.5 leading-none">
-            <span className="font-bold text-white text-xs sm:text-sm truncate max-w-[90px] sm:max-w-[120px]">
+            <span
+              className={`font-bold text-white text-xs sm:text-sm truncate ${
+                compact ? 'max-w-[70px] sm:max-w-[110px]' : 'max-w-[90px] sm:max-w-[130px]'
+              }`}
+            >
               {player.username}
             </span>
+            {isTurn && <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
             {isDeclarer && (
-              <span className="text-[10px] bg-white text-black font-extrabold px-1 rounded flex items-center gap-0.5">
-                <Crown className="w-2.5 h-2.5 fill-current" /> Declarer
+              <span className="text-[9px] sm:text-[10px] bg-white text-black font-extrabold px-1 rounded flex items-center gap-0.5">
+                <Crown className="w-2.5 h-2.5 fill-current" /> Dec
               </span>
             )}
             {isPartner && (
-              <span className="text-[10px] bg-zinc-300 text-black font-extrabold px-1 rounded flex items-center gap-0.5">
-                <UserCheck className="w-2.5 h-2.5" /> Partner
+              <span className="text-[9px] sm:text-[10px] bg-zinc-300 text-black font-extrabold px-1 rounded flex items-center gap-0.5">
+                <UserCheck className="w-2.5 h-2.5" /> Ptnr
               </span>
             )}
             {isOpponent && (
-              <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1 rounded border border-zinc-700">
-                Defense
+              <span className="text-[9px] sm:text-[10px] bg-zinc-800 text-zinc-400 px-1 rounded border border-zinc-700">
+                Def
               </span>
             )}
           </div>
 
-          <div className="text-[11px] text-zinc-400 font-mono mt-1 flex items-center gap-2">
+          <div className="text-[10px] sm:text-[11px] text-zinc-400 font-mono mt-1 flex items-center gap-1.5">
             <span>{player.hand.length} cards</span>
             <span>•</span>
-            <span className="text-zinc-300 font-semibold">{player.cardPointsCollected} pts</span>
+            <span className="text-zinc-200 font-semibold">{player.cardPointsCollected} pts</span>
           </div>
         </div>
       </div>
     );
   };
 
-  // Find played card for a player in current trick
-  const getPlayedCardForPlayer = (playerId?: string): PlayedCard | undefined => {
-    if (!playerId) return undefined;
-    return currentTrick.cards.find((c) => c.playerId === playerId);
-  };
-
   return (
-    <div className="w-full max-w-6xl mx-auto flex flex-col items-center justify-between min-h-[calc(100vh-100px)] text-white px-2 sm:px-4 py-2 select-none">
+    <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-between min-h-[calc(100vh-100px)] text-white px-2 sm:px-4 py-2 select-none">
       {/* Top HUD: Trump, Partner Card, Target Bid */}
-      <div className="w-full bg-zinc-950/90 border border-zinc-800 rounded-2xl px-4 py-2.5 mb-3 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm font-mono shadow-xl">
-        <div className="flex items-center space-x-4">
+      <div className="w-full bg-zinc-950/90 border border-zinc-800 rounded-2xl px-3 sm:px-4 py-2 mb-2 flex flex-wrap items-center justify-between gap-2.5 text-xs sm:text-sm font-mono shadow-xl">
+        <div className="flex items-center space-x-3 sm:space-x-4">
           {/* Trump Suit */}
           <div className="flex items-center space-x-1.5">
             <span className="text-zinc-500 uppercase text-[11px]">Hukum:</span>
@@ -169,16 +159,16 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3 sm:space-x-4">
           {/* Target */}
           <div>
-            <span className="text-zinc-500 uppercase text-[11px]">Target Bid: </span>
+            <span className="text-zinc-500 uppercase text-[11px]">Target: </span>
             <span className="text-white font-bold">{highestBid} pts</span>
           </div>
 
           {/* Trick Number */}
           <div className="bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded text-zinc-300">
-            Trick <strong className="text-white">{currentTrick.trickNumber}</strong> / 13
+            Trick <strong className="text-white">{currentTrick.trickNumber}</strong> / {totalTricks || 13}
           </div>
 
           {/* Toggle Log button */}
@@ -194,7 +184,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       {/* Partner Revealed Banner */}
       {isPartnerRevealed && (
-        <div className="w-full bg-white text-black py-1.5 px-4 rounded-xl mb-3 flex items-center justify-center space-x-2 text-xs font-black uppercase tracking-wider animate-in fade-in shadow-xl">
+        <div className="w-full bg-white text-black py-1.5 px-4 rounded-xl mb-2 flex items-center justify-center space-x-2 text-xs font-black uppercase tracking-wider animate-in fade-in shadow-xl">
           <Sparkles className="w-4 h-4 fill-current" />
           <span>
             Partner Revealed: {players.find((p) => p.id === partnerId)?.username} holds the {calledCard?.rank} of{' '}
@@ -203,78 +193,76 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         </div>
       )}
 
-      {/* Main Playing Table Area */}
-      <div className="relative w-full max-w-4xl h-[380px] sm:h-[420px] bg-zinc-950 border border-zinc-800/80 rounded-3xl shadow-2xl flex items-center justify-center p-4 overflow-hidden">
-        {/* Subtle table felt lines */}
-        <div className="absolute inset-4 border border-zinc-900 rounded-2xl pointer-events-none" />
-        <div className="absolute w-44 h-44 rounded-full border border-zinc-900 pointer-events-none" />
-
-        {/* TOP PLAYER */}
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 flex flex-col items-center z-10">
-          {renderPlayerBadge(topPlayer)}
+      {/* MAIN PLAYING BOARD CONTAINER */}
+      <div className="w-full flex flex-col items-center">
+        {/* OPPONENTS RAIL (Clean responsive row above the table felt - NEVER overlaps cards!) */}
+        <div className="w-full flex flex-wrap items-center justify-center gap-2 mb-2">
+          {opponents.map((player) => renderPlayerBadge(player, true))}
         </div>
 
-        {/* LEFT PLAYER */}
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center z-10">
-          {renderPlayerBadge(leftPlayer)}
-        </div>
+        {/* CENTER TRICK FELT ARENA (Dedicated space for current played cards) */}
+        <div className="w-full max-w-3xl min-h-[200px] sm:min-h-[240px] bg-zinc-950 border border-zinc-800/90 rounded-3xl shadow-2xl relative flex flex-col items-center justify-center p-3 sm:p-5 overflow-hidden my-1">
+          {/* Subtle table felt decorative lines */}
+          <div className="absolute inset-3 border border-zinc-900 rounded-2xl pointer-events-none" />
+          <div className="absolute w-44 h-44 sm:w-56 sm:h-56 rounded-full border border-zinc-900 pointer-events-none" />
 
-        {/* RIGHT PLAYER */}
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center z-10">
-          {renderPlayerBadge(rightPlayer)}
-        </div>
-
-        {/* CENTER FELT: PLAYED CARDS */}
-        <div className="relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center">
-          {/* Top Played Card */}
-          {topPlayer && getPlayedCardForPlayer(topPlayer.id) && (
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 flex flex-col items-center animate-in zoom-in-95 duration-150">
-              <CardView card={getPlayedCardForPlayer(topPlayer.id)?.card} size="sm" isPlayable={false} />
-              <span className="text-[10px] text-zinc-400 font-mono mt-0.5">{topPlayer.username}</span>
+          {/* 1. If cards have been played in current trick */}
+          {currentTrick.cards.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 z-10 w-full px-2">
+              {currentTrick.cards.map((play, idx) => {
+                const isLead = idx === 0;
+                const isMe = play.playerId === me.id;
+                return (
+                  <div
+                    key={play.playerId}
+                    className="flex flex-col items-center animate-in zoom-in-95 duration-150"
+                  >
+                    <div className="relative">
+                      <CardView card={play.card} size="sm" isPlayable={false} />
+                      {isLead && (
+                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-black px-1.5 py-0.2 rounded shadow uppercase font-mono">
+                          Lead
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`text-[10px] sm:text-xs font-mono mt-1 px-1.5 py-0.5 rounded truncate max-w-[80px] sm:max-w-[100px] text-center ${
+                        isMe
+                          ? 'bg-white text-black font-extrabold'
+                          : 'text-zinc-300 bg-zinc-900/90 border border-zinc-800'
+                      }`}
+                    >
+                      {isMe ? 'You' : play.playerUsername}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
 
-          {/* Left Played Card */}
-          {leftPlayer && getPlayedCardForPlayer(leftPlayer.id) && (
-            <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col items-center animate-in zoom-in-95 duration-150">
-              <CardView card={getPlayedCardForPlayer(leftPlayer.id)?.card} size="sm" isPlayable={false} />
-              <span className="text-[10px] text-zinc-400 font-mono mt-0.5">{leftPlayer.username}</span>
-            </div>
-          )}
-
-          {/* Right Played Card */}
-          {rightPlayer && getPlayedCardForPlayer(rightPlayer.id) && (
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center animate-in zoom-in-95 duration-150">
-              <CardView card={getPlayedCardForPlayer(rightPlayer.id)?.card} size="sm" isPlayable={false} />
-              <span className="text-[10px] text-zinc-400 font-mono mt-0.5">{rightPlayer.username}</span>
-            </div>
-          )}
-
-          {/* Bottom (My) Played Card */}
-          {getPlayedCardForPlayer(me.id) && (
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center animate-in zoom-in-95 duration-150">
-              <CardView card={getPlayedCardForPlayer(me.id)?.card} size="sm" isPlayable={false} />
-              <span className="text-[10px] text-white font-bold font-mono mt-0.5">You</span>
-            </div>
-          )}
-
-          {/* Previous trick won announcement overlay */}
+          {/* 2. Previous trick winner banner (between tricks) */}
           {previousTrick && currentTrick.cards.length === 0 && (
-            <div className="text-center bg-black/80 backdrop-blur-sm border border-zinc-800 p-2.5 rounded-xl z-20">
-              <div className="text-[11px] text-zinc-400 uppercase font-mono">Last Trick Winner</div>
-              <div className="text-sm font-bold text-white flex items-center justify-center gap-1">
-                <span>{previousTrick.winnerUsername}</span>
-                <span className="text-zinc-300 font-mono">+{previousTrick.trickPoints} pts</span>
+            <div className="text-center bg-black/90 backdrop-blur-sm border border-zinc-800 px-4 py-3 rounded-2xl z-20 animate-in zoom-in-95 shadow-xl">
+              <div className="text-[11px] text-zinc-400 uppercase font-mono tracking-wider">
+                Last Trick Winner
+              </div>
+              <div className="text-base font-extrabold text-white flex items-center justify-center gap-1.5 mt-0.5">
+                <span>👑 {previousTrick.winnerUsername}</span>
+                <span className="text-zinc-300 font-mono text-sm">
+                  (+{previousTrick.trickPoints} pts)
+                </span>
               </div>
             </div>
           )}
 
-          {/* Empty center placeholder */}
+          {/* 3. Empty center placeholder when starting a trick */}
           {!previousTrick && currentTrick.cards.length === 0 && (
-            <div className="text-zinc-700 text-xs font-mono uppercase tracking-widest text-center">
+            <div className="text-zinc-700 text-xs font-mono uppercase tracking-widest text-center z-10">
               Trick Area
               {currentTrick.leadSuit && (
-                <div className="text-zinc-400 text-sm mt-1">Lead: {SUIT_SYMBOLS[currentTrick.leadSuit]}</div>
+                <div className="text-zinc-400 text-sm mt-1 normal-case">
+                  Lead Suit: {SUIT_SYMBOLS[currentTrick.leadSuit]} {currentTrick.leadSuit}
+                </div>
               )}
             </div>
           )}
@@ -283,7 +271,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       {/* Action Logs Drawer (if toggled) */}
       {showLogs && (
-        <div className="w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-xl p-3 my-2 text-xs font-mono max-h-36 overflow-y-auto">
+        <div className="w-full max-w-3xl bg-zinc-950 border border-zinc-800 rounded-xl p-3 my-2 text-xs font-mono max-h-36 overflow-y-auto">
           <div className="font-bold text-zinc-400 uppercase text-[10px] mb-1">Recent Game Events</div>
           <div className="space-y-1">
             {actionLogs.slice(-6).map((log) => (
@@ -295,14 +283,14 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         </div>
       )}
 
-      {/* Bottom Area: Turn Prompt, My Status & Hand */}
-      <div className="w-full max-w-5xl mt-3 flex flex-col items-center">
+      {/* BOTTOM AREA: TURN PROMPT, MY BADGE, & HAND */}
+      <div className="w-full max-w-5xl mt-2 flex flex-col items-center">
         {/* Turn Prompt Banner */}
         <div className="mb-2 flex items-center justify-center">
           {isMyTurn ? (
             <div className="bg-white text-black px-4 py-1.5 rounded-full font-black text-xs sm:text-sm tracking-wide animate-pulse shadow-lg flex items-center gap-2">
               <span>YOUR TURN</span>
-              <span className="font-normal font-mono text-zinc-700">
+              <span className="font-normal font-mono text-zinc-700 text-xs">
                 {currentTrick.leadSuit
                   ? `(Must follow: ${currentTrick.leadSuit.toUpperCase()} ${SUIT_SYMBOLS[currentTrick.leadSuit]})`
                   : '(Lead any card)'}
@@ -323,7 +311,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         <div className="mb-2">{renderPlayerBadge(me)}</div>
 
         {/* Cards in Hand */}
-        <div className="w-full bg-zinc-950/80 border border-zinc-800/80 rounded-2xl p-3 sm:p-4 shadow-2xl flex flex-col items-center">
+        <div className="w-full bg-zinc-950/80 border border-zinc-800/80 rounded-2xl p-2.5 sm:p-4 shadow-2xl flex flex-col items-center">
           <div className="w-full flex items-center justify-between text-xs text-zinc-400 font-mono px-2 mb-2">
             <div className="flex items-center space-x-2">
               <span>
@@ -348,7 +336,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               )}
             </div>
             <div>
-              Card Points in Hand:{' '}
+              Card Points:{' '}
               <strong className="text-white">
                 {isCardsHidden ? '••••' : `${me.hand.reduce((s, c) => s + c.points, 0)} pts`}
               </strong>
