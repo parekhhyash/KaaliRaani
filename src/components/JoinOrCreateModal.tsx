@@ -183,7 +183,7 @@ export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
               type="submit"
               className="w-full py-3.5 bg-white text-black hover:bg-zinc-200 font-black text-sm rounded-xl transition-all shadow-xl flex items-center justify-center space-x-2 mt-4 hover:scale-[1.01]"
             >
-              <span>Create Room & Generate Code</span>
+              <span>Create Room</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

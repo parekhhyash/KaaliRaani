@@ -216,11 +216,12 @@ function KaaliRaaniGame() {
     <div className="min-h-screen bg-black text-white flex flex-col justify-between selection:bg-white selection:text-black">
       {/* Top Navigation */}
       <Navbar
-        roomCode={roomState?.roomCode || savedSession?.roomCode || ''}
+        roomCode={roomState?.roomCode || ''}
         currentRound={roomState?.currentRound || 0}
         totalRounds={roomState?.totalRounds || 3}
         peerStatus={peerStatus}
         isCardsHidden={isCardsHidden}
+        isInRoom={Boolean(roomState)}
         onToggleHideCards={handleToggleHideCards}
         onOpenRules={() => setIsRulesOpen(true)}
         onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
@@ -370,9 +371,7 @@ function KaaliRaaniGame() {
       />
 
       {/* Footer */}
-      <footer className="w-full border-t border-zinc-900 py-3.5 px-4 text-center text-xs text-zinc-500 font-mono flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3">
-        <span>Kaali Raani (Black Queen) • 150 Points Deck</span>
-        <span className="hidden sm:inline">•</span>
+      <footer className="w-full border-t border-zinc-900 py-3.5 px-4 text-center text-xs text-zinc-500 font-mono flex items-center justify-center">
         <span>
           Made with ❤️ by{' '}
           <a

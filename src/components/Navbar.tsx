@@ -11,6 +11,7 @@ interface NavbarProps {
   totalRounds: number;
   peerStatus: PeerStatus;
   isCardsHidden?: boolean;
+  isInRoom?: boolean;
   onToggleHideCards?: () => void;
   onOpenRules: () => void;
   onOpenLeaderboard: () => void;
@@ -22,6 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   totalRounds,
   peerStatus,
   isCardsHidden = false,
+  isInRoom = false,
   onToggleHideCards,
   onOpenRules,
   onOpenLeaderboard,
@@ -137,13 +139,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         )}
 
-        <button
-          onClick={onOpenLeaderboard}
-          className="p-1.5 sm:p-2 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition-all"
-          title="Leaderboard"
-        >
-          <Trophy className="w-4 h-4" />
-        </button>
+        {isInRoom && (
+          <button
+            onClick={onOpenLeaderboard}
+            className="p-1.5 sm:p-2 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition-all"
+            title="Leaderboard"
+          >
+            <Trophy className="w-4 h-4" />
+          </button>
+        )}
 
         <button
           onClick={onOpenRules}
