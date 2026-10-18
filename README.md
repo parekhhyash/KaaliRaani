@@ -1,7 +1,7 @@
 # ♠ Kaali Raani (Black Queen) — Multiplayer Card Game
 
-[![Deploy with Vercel](https://vercel.com/button)](https://kaali-raani.vercel.app)
-**🎮 Live Game URL**: [https://kaali-raani.vercel.app](https://kaali-raani.vercel.app)
+[![Deploy with Vercel](https://vercel.com/button)](https://blackqueen.vercel.app)
+**🎮 Live Game URL**: [https://blackqueen.vercel.app](https://blackqueen.vercel.app)
 
 A real-time multiplayer implementation of the classic Indian trick-taking card game **Kaali Raani** (Black Queen). Built with **Next.js**, **TypeScript**, and **Tailwind CSS**, featuring a minimalist **Black & White aesthetic** and **WebRTC Peer-to-Peer** networking for seamless serverless hosting on **Vercel** with zero external backend required.
 
