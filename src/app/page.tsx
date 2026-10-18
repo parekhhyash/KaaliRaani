@@ -331,8 +331,20 @@ function KaaliRaaniGame() {
       />
 
       {/* Footer */}
-      <footer className="w-full border-t border-zinc-900 py-3 px-4 text-center text-xs text-zinc-600 font-mono">
-        Kaali Raani (Black Queen) • 150 Points Deck • Play with friends & bots
+      <footer className="w-full border-t border-zinc-900 py-3.5 px-4 text-center text-xs text-zinc-500 font-mono flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3">
+        <span>Kaali Raani (Black Queen) • 150 Points Deck</span>
+        <span className="hidden sm:inline">•</span>
+        <span>
+          Made with ❤️ by{' '}
+          <a
+            href="https://github.com/parekhhyash"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white hover:underline font-bold transition-colors"
+          >
+            Yash Parekh
+          </a>
+        </span>
       </footer>
     </div>
   );
