@@ -11,6 +11,7 @@ import { JoinOrCreateModal } from '@/components/JoinOrCreateModal';
 import { GameLobby } from '@/components/GameLobby';
 import { BiddingModal } from '@/components/BiddingModal';
 import { TrumpSelectionModal } from '@/components/TrumpSelectionModal';
+import { TrumpRevealModal } from '@/components/TrumpRevealModal';
 import { GameBoard } from '@/components/GameBoard';
 import { RoundEndModal } from '@/components/RoundEndModal';
 import { FinalLeaderboardModal } from '@/components/FinalLeaderboardModal';
@@ -216,6 +217,10 @@ function KaaliRaaniGame() {
     manager?.selectTrumpAndPartner(trumpSuit, calledCard);
   };
 
+  const handleFinishTrumpReveal = () => {
+    manager?.finishTrumpReveal();
+  };
+
   const handlePlayCard = (cardId: string) => {
     manager?.playCard(cardId);
   };
@@ -329,6 +334,15 @@ function KaaliRaaniGame() {
                 isCardsHidden={isCardsHidden}
                 onToggleHideCards={handleToggleHideCards}
                 onConfirm={handleSelectTrumpAndPartner}
+              />
+            )}
+
+            {/* 4b. TRUMP & PARTNER REVEAL ANIMATION */}
+            {roomState.phase === 'trump_reveal' && roomState.trumpSuit && roomState.calledCard && (
+              <TrumpRevealModal
+                trumpSuit={roomState.trumpSuit}
+                calledCard={roomState.calledCard}
+                onComplete={handleFinishTrumpReveal}
               />
             )}
 

@@ -487,7 +487,7 @@ export function selectTrumpAndPartner(
 
   return {
     ...state,
-    phase: 'playing',
+    phase: 'trump_reveal',
     trumpSuit,
     calledCard,
     partnerId,
@@ -507,6 +507,16 @@ export function selectTrumpAndPartner(
         type: 'trump',
       },
     ],
+    lastActiveAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+}
+
+export function finishTrumpReveal(state: RoomState): RoomState {
+  if (state.phase !== 'trump_reveal') return state;
+  return {
+    ...state,
+    phase: 'playing',
     lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };

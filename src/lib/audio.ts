@@ -164,6 +164,31 @@ class SoundEffects {
     this.playBid();
   }
 
+  public playTrumpReveal() {
+    if (this.isMuted) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    const chords = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+    chords.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'triangle';
+      const startTime = ctx.currentTime + idx * 0.05;
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.18, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.6);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.65);
+    });
+  }
+
   public playClick() {
     if (this.isMuted) return;
     const ctx = this.initCtx();

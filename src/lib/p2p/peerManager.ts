@@ -12,6 +12,7 @@ import {
   placeBid,
   passBid,
   selectTrumpAndPartner,
+  finishTrumpReveal,
   playCard,
   advanceTrickOrRound,
 } from '../gameEngine';
@@ -42,6 +43,7 @@ export class PeerGameManager {
   private botTimer: NodeJS.Timeout | null = null;
   private inactivityInterval: NodeJS.Timeout | null = null;
   private trickTransitionTimer: NodeJS.Timeout | null = null;
+  private revealTimer: NodeJS.Timeout | null = null;
   private isDestroyed: boolean = false;
 
   constructor() {
@@ -464,6 +466,19 @@ export class PeerGameManager {
       }
     }
 
+    // 2b. Automatically advance from trump_reveal to playing after cinematic reveal animation
+    if (state.phase === 'trump_reveal') {
+      if (this.isHost) {
+        if (this.revealTimer) clearTimeout(this.revealTimer);
+        this.revealTimer = setTimeout(() => {
+          if (!this.currentState || this.currentState.phase !== 'trump_reveal') return;
+          const updated = finishTrumpReveal(this.currentState);
+          this.broadcastState(updated);
+        }, 5300);
+      }
+      return;
+    }
+
     // 3. Check if Card Play turn belongs to a Bot
     if (state.phase === 'playing' && state.currentTurnPlayerId) {
       const activePlayer = state.players.find((p) => p.id === state.currentTurnPlayerId);
@@ -604,6 +619,13 @@ export class PeerGameManager {
     }
   }
 
+  public finishTrumpReveal() {
+    if (!this.isHost || !this.currentState || this.currentState.phase !== 'trump_reveal') return;
+    if (this.revealTimer) clearTimeout(this.revealTimer);
+    const updated = finishTrumpReveal(this.currentState);
+    this.broadcastState(updated);
+  }
+
   public playCard(cardId: string) {
     if (this.isHost) {
       if (!this.currentState) return;
@@ -636,6 +658,7 @@ export class PeerGameManager {
   public destroy() {
     this.isDestroyed = true;
     if (this.botTimer) clearTimeout(this.botTimer);
+    if (this.revealTimer) clearTimeout(this.revealTimer);
     if (this.trickTransitionTimer) clearTimeout(this.trickTransitionTimer);
     if (this.inactivityInterval) clearInterval(this.inactivityInterval);
     try {

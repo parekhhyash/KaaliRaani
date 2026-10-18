@@ -43,6 +43,7 @@ export type GamePhase =
   | 'lobby'
   | 'bidding'
   | 'trump_selection' // Declarer chooses trump and partner card
+  | 'trump_reveal' // Cinematic reveal of Hukkum and Partner card
   | 'playing'
   | 'round_end'
   | 'match_end';
