@@ -1,101 +1,336 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { RoomState, Suit, Card, GameSettings } from '@/types/game';
+import { PeerGameManager, PeerStatus } from '@/lib/p2p/peerManager';
+import { Navbar } from '@/components/Navbar';
+import { RulesModal } from '@/components/RulesModal';
+import { LeaderboardModal } from '@/components/LeaderboardModal';
+import { JoinOrCreateModal } from '@/components/JoinOrCreateModal';
+import { GameLobby } from '@/components/GameLobby';
+import { BiddingModal } from '@/components/BiddingModal';
+import { TrumpSelectionModal } from '@/components/TrumpSelectionModal';
+import { GameBoard } from '@/components/GameBoard';
+import { RoundEndModal } from '@/components/RoundEndModal';
+import { FinalLeaderboardModal } from '@/components/FinalLeaderboardModal';
+
+interface SavedSession {
+  roomCode: string;
+  username: string;
+  isHost: boolean;
+}
+
+function KaaliRaaniGame() {
+  const searchParams = useSearchParams();
+  const initialRoomFromUrl = searchParams.get('room') || '';
+
+  const [manager, setManager] = useState<PeerGameManager | null>(null);
+  const [roomState, setRoomState] = useState<RoomState | null>(null);
+  const [peerStatus, setPeerStatus] = useState<PeerStatus>('disconnected');
+  const [statusMessage, setStatusMessage] = useState<string>('');
+  
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+
+  // Session persistence
+  const [savedSession, setSavedSession] = useState<SavedSession | null>(null);
+
+  const managerRef = useRef<PeerGameManager | null>(null);
+
+  useEffect(() => {
+    // Check local storage for previous session
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('kaali_raani_session');
+        if (stored) {
+          const parsed: SavedSession = JSON.parse(stored);
+          setSavedSession(parsed);
+        }
+      } catch {}
+    }
+
+    return () => {
+      if (managerRef.current) {
+        managerRef.current.destroy();
+      }
+    };
+  }, []);
+
+  const initManager = () => {
+    if (managerRef.current) {
+      managerRef.current.destroy();
+    }
+    const mgr = new PeerGameManager();
+    managerRef.current = mgr;
+    setManager(mgr);
+
+    mgr.subscribeState((newState) => {
+      setRoomState(newState);
+    });
+
+    mgr.subscribeStatus((status, message) => {
+      setPeerStatus(status);
+      if (message) setStatusMessage(message);
+    });
+
+    return mgr;
+  };
+
+  const handleCreateRoom = async (username: string, totalRounds: number) => {
+    // Generate clean 6-character room code
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'KQ';
+    for (let i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    const session: SavedSession = { roomCode: code, username, isHost: true };
+    localStorage.setItem('kaali_raani_session', JSON.stringify(session));
+    setSavedSession(session);
+
+    const mgr = initManager();
+    await mgr.initHost(code, username, { totalRounds });
+  };
+
+  const handleJoinRoom = async (roomCode: string, username: string) => {
+    const cleanCode = roomCode.toUpperCase().trim();
+    const session: SavedSession = { roomCode: cleanCode, username, isHost: false };
+    localStorage.setItem('kaali_raani_session', JSON.stringify(session));
+    setSavedSession(session);
+
+    const mgr = initManager();
+    await mgr.initClient(cleanCode, username);
+  };
+
+  const handleResumeSession = async () => {
+    if (!savedSession) return;
+    const mgr = initManager();
+    if (savedSession.isHost) {
+      await mgr.initHost(savedSession.roomCode, savedSession.username);
+    } else {
+      await mgr.initClient(savedSession.roomCode, savedSession.username);
+    }
+  };
+
+  const handleStartGame = () => {
+    manager?.startGame();
+  };
+
+  const handleNextRound = () => {
+    manager?.nextRound();
+  };
+
+  const handleRestartGame = () => {
+    manager?.restartGame();
+  };
+
+  const handleAddBot = () => {
+    manager?.addBot();
+  };
+
+  const handleRemoveBot = (botId: string) => {
+    manager?.removeBot(botId);
+  };
+
+  const handleUpdateSettings = (settings: Partial<GameSettings>) => {
+    manager?.updateSettings(settings);
+  };
+
+  const handlePlaceBid = (amount: number) => {
+    manager?.placeBid(amount);
+  };
+
+  const handlePassBid = () => {
+    manager?.passBid();
+  };
+
+  const handleSelectTrumpAndPartner = (trumpSuit: Suit, calledCard: Card) => {
+    manager?.selectTrumpAndPartner(trumpSuit, calledCard);
+  };
+
+  const handlePlayCard = (cardId: string) => {
+    manager?.playCard(cardId);
+  };
+
+  const handleSendChat = (text: string) => {
+    manager?.sendChatMessage(text);
+  };
+
+  // Find my player in state
+  const myPlayerId = manager?.myPeerId || '';
+  const myUsername = manager?.username || '';
+  const myPlayer =
+    roomState?.players.find((p) => p.id === myPlayerId) ||
+    roomState?.players.find((p) => p.username.toLowerCase() === myUsername.toLowerCase()) ||
+    roomState?.players[0];
+
+  const isHost = manager?.isHost || myPlayer?.isHost || false;
+  const isDeclarer = roomState?.declarerId === myPlayer?.id;
+  const declarerPlayer = roomState?.players.find((p) => p.id === roomState?.declarerId);
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="min-h-screen bg-black text-white flex flex-col justify-between selection:bg-white selection:text-black">
+      {/* Top Navigation */}
+      <Navbar
+        roomCode={roomState?.roomCode || savedSession?.roomCode || ''}
+        currentRound={roomState?.currentRound || 0}
+        totalRounds={roomState?.totalRounds || 3}
+        peerStatus={peerStatus}
+        onOpenRules={() => setIsRulesOpen(true)}
+        onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+      />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+      {/* Main Game Screen */}
+      <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
+        {/* Connection message notification if error */}
+        {peerStatus === 'error' && (
+          <div className="w-full max-w-lg mb-4 p-3 bg-rose-950/80 border border-rose-700 rounded-xl text-rose-300 text-xs text-center font-mono">
+            {statusMessage || 'Network connection issue. Please check room code and try again.'}
+          </div>
+        )}
+
+        {/* 1. LANDING: CREATE OR JOIN ROOM */}
+        {!roomState ? (
+          <JoinOrCreateModal
+            initialRoomCode={initialRoomFromUrl}
+            hasPreviousSession={!!savedSession}
+            previousRoomCode={savedSession?.roomCode}
+            previousUsername={savedSession?.username}
+            onCreateRoom={handleCreateRoom}
+            onJoinRoom={handleJoinRoom}
+            onResumeSession={handleResumeSession}
+            onOpenRules={() => setIsRulesOpen(true)}
+          />
+        ) : (
+          <>
+            {/* 2. LOBBY */}
+            {roomState.phase === 'lobby' && (
+              <GameLobby
+                roomCode={roomState.roomCode}
+                players={roomState.players}
+                isHost={isHost}
+                settings={roomState.settings}
+                onStartGame={handleStartGame}
+                onAddBot={handleAddBot}
+                onRemoveBot={handleRemoveBot}
+                onUpdateSettings={handleUpdateSettings}
+              />
+            )}
+
+            {/* 3. BIDDING */}
+            {roomState.phase === 'bidding' && (
+              <BiddingModal
+                currentBidderId={roomState.currentBidderId}
+                highestBid={roomState.highestBid}
+                highestBidderId={roomState.highestBidderId}
+                myPlayerId={myPlayer?.id || ''}
+                players={roomState.players}
+                minBid={roomState.settings.minBid}
+                bidIncrement={roomState.settings.bidIncrement}
+                maxBid={roomState.settings.maxBid}
+                myHand={myPlayer?.hand || []}
+                onPlaceBid={handlePlaceBid}
+                onPassBid={handlePassBid}
+              />
+            )}
+
+            {/* 4. TRUMP & PARTNER SELECTION */}
+            {roomState.phase === 'trump_selection' && (
+              <TrumpSelectionModal
+                isDeclarer={isDeclarer}
+                declarerUsername={declarerPlayer?.username || 'Declarer'}
+                highestBid={roomState.highestBid}
+                myHand={myPlayer?.hand || []}
+                onConfirm={handleSelectTrumpAndPartner}
+              />
+            )}
+
+            {/* 5. PLAYING TRICKS */}
+            {roomState.phase === 'playing' && (
+              <GameBoard
+                state={roomState}
+                myPlayerId={myPlayer?.id || ''}
+                onPlayCard={handlePlayCard}
+                onSendChat={handleSendChat}
+              />
+            )}
+
+            {/* 6. ROUND END SUMMARY */}
+            {roomState.phase === 'round_end' && (
+              <>
+                <GameBoard
+                  state={roomState}
+                  myPlayerId={myPlayer?.id || ''}
+                  onPlayCard={handlePlayCard}
+                  onSendChat={handleSendChat}
+                />
+                {roomState.roundResults.length > 0 && (
+                  <RoundEndModal
+                    roundResult={roomState.roundResults[roomState.roundResults.length - 1]}
+                    players={roomState.players}
+                    currentRound={roomState.currentRound}
+                    totalRounds={roomState.totalRounds}
+                    isHost={isHost}
+                    onNextRound={handleNextRound}
+                  />
+                )}
+              </>
+            )}
+
+            {/* 7. MATCH END & FINAL LEADERBOARD */}
+            {roomState.phase === 'match_end' && (
+              <>
+                <GameBoard
+                  state={roomState}
+                  myPlayerId={myPlayer?.id || ''}
+                  onPlayCard={handlePlayCard}
+                  onSendChat={handleSendChat}
+                />
+                <FinalLeaderboardModal
+                  players={roomState.players}
+                  roundResults={roomState.roundResults}
+                  totalRounds={roomState.totalRounds}
+                  isHost={isHost}
+                  onRestartGame={handleRestartGame}
+                />
+              </>
+            )}
+          </>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Rules Modal */}
+      <RulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} />
+
+      {/* Leaderboard Modal */}
+      <LeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+        players={roomState?.players || []}
+        roundResults={roomState?.roundResults || []}
+        currentRound={roomState?.currentRound || 1}
+        totalRounds={roomState?.totalRounds || 3}
+      />
+
+      {/* Footer */}
+      <footer className="w-full border-t border-zinc-900 py-3 px-4 text-center text-xs text-zinc-600 font-mono">
+        Kaali Raani (Black Queen) • 150 Points Deck • Play with friends & bots
       </footer>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-black text-white flex items-center justify-center font-mono">
+          Loading Kaali Raani...
+        </div>
+      }
+    >
+      <KaaliRaaniGame />
+    </Suspense>
   );
 }

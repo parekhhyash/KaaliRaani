@@ -1,0 +1,246 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Crown, Users, ArrowRight, RotateCcw, BookOpen } from 'lucide-react';
+import { sounds } from '@/lib/audio';
+
+interface JoinOrCreateModalProps {
+  initialRoomCode?: string;
+  hasPreviousSession?: boolean;
+  previousRoomCode?: string;
+  previousUsername?: string;
+  onCreateRoom: (username: string, totalRounds: number) => void;
+  onJoinRoom: (roomCode: string, username: string) => void;
+  onResumeSession: () => void;
+  onOpenRules: () => void;
+}
+
+export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
+  initialRoomCode = '',
+  hasPreviousSession = false,
+  previousRoomCode = '',
+  previousUsername = '',
+  onCreateRoom,
+  onJoinRoom,
+  onResumeSession,
+  onOpenRules,
+}) => {
+  const [mode, setMode] = useState<'join' | 'create'>(initialRoomCode ? 'join' : 'create');
+  const [username, setUsername] = useState(previousUsername || '');
+  const [roomCode, setRoomCode] = useState(initialRoomCode || '');
+  const [totalRounds, setTotalRounds] = useState(3);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (initialRoomCode) {
+      setRoomCode(initialRoomCode.toUpperCase());
+      setMode('join');
+    }
+  }, [initialRoomCode]);
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim()) {
+      setError('Please enter a username');
+      return;
+    }
+    setError('');
+    sounds.playClick();
+    onCreateRoom(username.trim(), totalRounds);
+  };
+
+  const handleJoin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim()) {
+      setError('Please enter a username');
+      return;
+    }
+    if (!roomCode.trim()) {
+      setError('Please enter a 6-character room code');
+      return;
+    }
+    setError('');
+    sounds.playClick();
+    onJoinRoom(roomCode.trim().toUpperCase(), username.trim());
+  };
+
+  return (
+    <div className="w-full max-w-lg mx-auto p-4 sm:p-6 text-white">
+      {/* Branding Hero */}
+      <div className="text-center mb-8">
+        <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-700 flex items-center justify-center mx-auto mb-4 text-3xl font-black text-white shadow-2xl">
+          ♠
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-black tracking-tight">Kaali Raani</h1>
+        <p className="text-xs uppercase font-mono tracking-widest text-zinc-400 mt-1">
+          Black Queen • 150 Point Indian Card Game
+        </p>
+      </div>
+
+      {/* Reconnect Banner if previous session exists */}
+      {hasPreviousSession && previousRoomCode && (
+        <div className="mb-6 p-4 rounded-2xl bg-zinc-900/90 border border-white/20 flex items-center justify-between shadow-xl">
+          <div>
+            <div className="text-xs font-mono text-zinc-400 uppercase">Active Session Detected</div>
+            <div className="font-bold text-white text-sm">
+              Room: {previousRoomCode} ({previousUsername})
+            </div>
+          </div>
+          <button
+            onClick={onResumeSession}
+            className="px-4 py-2 bg-white text-black hover:bg-zinc-200 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 shadow"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Rejoin Game</span>
+          </button>
+        </div>
+      )}
+
+      {/* Main Card */}
+      <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+        {/* Toggle Mode */}
+        <div className="flex bg-zinc-900 p-1 rounded-2xl border border-zinc-800 mb-6">
+          <button
+            type="button"
+            onClick={() => {
+              setMode('create');
+              setError('');
+            }}
+            className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+              mode === 'create'
+                ? 'bg-white text-black shadow'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Crown className="w-3.5 h-3.5" />
+            <span>Create Room</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMode('join');
+              setError('');
+            }}
+            className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+              mode === 'join'
+                ? 'bg-white text-black shadow'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Join Room</span>
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs text-center font-medium">
+            {error}
+          </div>
+        )}
+
+        {mode === 'create' ? (
+          /* CREATE ROOM FORM */
+          <form onSubmit={handleCreate} className="space-y-5">
+            <div>
+              <label className="block text-xs uppercase font-mono tracking-wider text-zinc-400 mb-1.5">
+                Your Username
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Yash"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                maxLength={16}
+                required
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 font-semibold focus:outline-none focus:border-white transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase font-mono tracking-wider text-zinc-400 mb-2">
+                Number of Rounds: <span className="text-white font-mono font-bold">{totalRounds}</span>
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {[1, 3, 5, 10].map((rounds) => (
+                  <button
+                    key={rounds}
+                    type="button"
+                    onClick={() => setTotalRounds(rounds)}
+                    className={`py-2 rounded-xl text-xs font-mono font-bold border transition-all ${
+                      totalRounds === rounds
+                        ? 'bg-white text-black border-white'
+                        : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                    }`}
+                  >
+                    {rounds} {rounds === 1 ? 'Round' : 'Rounds'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 bg-white text-black hover:bg-zinc-200 font-black text-sm rounded-xl transition-all shadow-xl flex items-center justify-center space-x-2 mt-4 hover:scale-[1.01]"
+            >
+              <span>Create Room & Generate Code</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+        ) : (
+          /* JOIN ROOM FORM */
+          <form onSubmit={handleJoin} className="space-y-5">
+            <div>
+              <label className="block text-xs uppercase font-mono tracking-wider text-zinc-400 mb-1.5">
+                Room Code
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. KQ8912"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                maxLength={8}
+                required
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white font-mono text-center tracking-widest text-lg font-bold placeholder-zinc-500 uppercase focus:outline-none focus:border-white transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase font-mono tracking-wider text-zinc-400 mb-1.5">
+                Your Username
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Rahul"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                maxLength={16}
+                required
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 font-semibold focus:outline-none focus:border-white transition-colors"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 bg-white text-black hover:bg-zinc-200 font-black text-sm rounded-xl transition-all shadow-xl flex items-center justify-center space-x-2 mt-4 hover:scale-[1.01]"
+            >
+              <span>Join Game Room</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+        )}
+
+        <div className="mt-6 pt-4 border-t border-zinc-800 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={onOpenRules}
+            className="text-xs text-zinc-400 hover:text-white flex items-center space-x-1.5 transition-colors font-mono"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Read Kaali Raani Rules</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
