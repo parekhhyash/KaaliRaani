@@ -3,13 +3,11 @@
 import React, { useState } from 'react';
 import { Volume2, VolumeX, Share2, Copy, Check, BookOpen, Trophy, Eye, EyeOff } from 'lucide-react';
 import { sounds } from '@/lib/audio';
-import { PeerStatus } from '@/lib/p2p/peerManager';
 
 interface NavbarProps {
   roomCode: string;
   currentRound: number;
   totalRounds: number;
-  peerStatus: PeerStatus;
   isCardsHidden?: boolean;
   isInRoom?: boolean;
   onToggleHideCards?: () => void;
@@ -21,7 +19,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   roomCode,
   currentRound,
   totalRounds,
-  peerStatus,
   isCardsHidden = false,
   isInRoom = false,
   onToggleHideCards,
@@ -68,36 +65,25 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
-  const statusIndicator = {
-    connected: <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Connected" />,
-    connecting: <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" title="Connecting..." />,
-    disconnected: <span className="w-2 h-2 rounded-full bg-rose-500" title="Disconnected" />,
-    error: <span className="w-2 h-2 rounded-full bg-rose-600" title="Connection error" />,
-  }[peerStatus];
-
   return (
     <header className="w-full bg-transparent sticky top-0 z-40 px-3 sm:px-6 py-2.5 flex items-center justify-between text-white">
-      {/* Brand & Status */}
+      {/* Brand (only displayed once inside a game room) */}
       <div className="flex items-center space-x-3">
-        <div className="flex items-center space-x-2">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center font-bold text-white shadow">
-            ♠
+        {isInRoom && (
+          <div className="flex items-center space-x-2">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center font-bold text-white shadow">
+              ♠
+            </div>
+            <div>
+              <h1 className="font-extrabold text-sm sm:text-base tracking-wider uppercase flex items-center gap-1.5">
+                Kaali Raani
+                <span className="text-[10px] bg-zinc-800 text-zinc-300 font-mono px-1.5 py-0.5 rounded border border-zinc-700 font-normal">
+                  Black Queen
+                </span>
+              </h1>
+            </div>
           </div>
-          <div>
-            <h1 className="font-extrabold text-sm sm:text-base tracking-wider uppercase flex items-center gap-1.5">
-              Kaali Raani
-              <span className="text-[10px] bg-zinc-800 text-zinc-300 font-mono px-1.5 py-0.5 rounded border border-zinc-700 font-normal">
-                Black Queen
-              </span>
-            </h1>
-          </div>
-        </div>
-
-        {/* Live Status indicator */}
-        <div className="flex items-center space-x-1.5 pl-2 border-l border-zinc-800 text-xs text-zinc-400">
-          {statusIndicator}
-          <span className="hidden md:inline capitalize text-[11px]">{peerStatus}</span>
-        </div>
+        )}
       </div>
 
       {/* Center Room Code & Round */}

@@ -40,25 +40,6 @@ function KaaliRaaniGame() {
     setIsCardsHidden((prev) => !prev);
   };
 
-  // Landing page background wallpaper choice
-  const [selectedBg, setSelectedBg] = useState<string>('/bg-1.jpg');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedBg = localStorage.getItem('kr_landing_bg');
-      if (savedBg) {
-        setSelectedBg(savedBg);
-      }
-    }
-  }, []);
-
-  const handleSelectBg = (bg: string) => {
-    setSelectedBg(bg);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('kr_landing_bg', bg);
-    }
-  };
-
   // Session persistence
   const [savedSession, setSavedSession] = useState<SavedSession | null>(null);
 
@@ -260,9 +241,9 @@ function KaaliRaaniGame() {
       {/* Background Wallpaper on Landing Page (pure image with no gradients) */}
       {!roomState && (
         <div
-          className="fixed inset-0 z-0 bg-cover bg-center sm:bg-right bg-no-repeat transition-all duration-700 ease-in-out pointer-events-none"
+          className="fixed inset-0 z-0 bg-cover bg-center sm:bg-right bg-no-repeat pointer-events-none"
           style={{
-            backgroundImage: `url(${selectedBg})`,
+            backgroundImage: "url('/bg-3.png')",
           }}
         />
       )}
@@ -272,7 +253,6 @@ function KaaliRaaniGame() {
         roomCode={roomState?.roomCode || ''}
         currentRound={roomState?.currentRound || 0}
         totalRounds={roomState?.totalRounds || 3}
-        peerStatus={peerStatus}
         isCardsHidden={isCardsHidden}
         isInRoom={Boolean(roomState)}
         onToggleHideCards={handleToggleHideCards}
@@ -301,8 +281,6 @@ function KaaliRaaniGame() {
               onJoinRoom={handleJoinRoom}
               onResumeSession={handleResumeSession}
               onOpenRules={() => setIsRulesOpen(true)}
-              currentBg={selectedBg}
-              onSelectBg={handleSelectBg}
             />
           </div>
         ) : (

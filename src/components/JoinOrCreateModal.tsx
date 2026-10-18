@@ -1,14 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Crown, Users, ArrowRight, RotateCcw, BookOpen, ImageIcon, Eye, EyeOff } from 'lucide-react';
+import { Crown, Users, ArrowRight, RotateCcw, BookOpen } from 'lucide-react';
 import { sounds } from '@/lib/audio';
-
-export const BACKGROUND_OPTIONS = [
-  { id: 'bg-1', name: 'Option 1: Vintage Card', shortName: 'Vintage', path: '/bg-1.jpg' },
-  { id: 'bg-2', name: 'Option 2: Textured Border', shortName: 'Textured', path: '/bg-2.png' },
-  { id: 'bg-3', name: 'Option 3: Smoke & Mist Aura', shortName: 'Smoke Aura', path: '/bg-3.png' },
-];
 
 interface JoinOrCreateModalProps {
   initialRoomCode?: string;
@@ -19,8 +13,6 @@ interface JoinOrCreateModalProps {
   onJoinRoom: (roomCode: string, username: string) => void;
   onResumeSession: () => void;
   onOpenRules: () => void;
-  currentBg?: string;
-  onSelectBg?: (bg: string) => void;
 }
 
 export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
@@ -32,10 +24,7 @@ export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
   onJoinRoom,
   onResumeSession,
   onOpenRules,
-  currentBg = '/bg-1.jpg',
-  onSelectBg,
 }) => {
-  const [isPeekingBg, setIsPeekingBg] = useState(false);
   const [mode, setMode] = useState<'join' | 'create'>(initialRoomCode ? 'join' : 'create');
   const [username, setUsername] = useState(previousUsername || '');
   const [roomCode, setRoomCode] = useState(initialRoomCode || '');
@@ -76,7 +65,7 @@ export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
   };
 
   return (
-    <div className={`w-full max-w-lg mx-auto lg:mx-0 p-4 sm:p-6 text-white transition-opacity duration-300 ${isPeekingBg ? 'opacity-20 hover:opacity-100' : 'opacity-100'}`}>
+    <div className="w-full max-w-lg mx-auto lg:mx-0 p-4 sm:p-6 text-white">
       {/* Branding Hero */}
       <div className="text-center mb-8 relative z-10">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">Kaali Raani</h1>
@@ -249,65 +238,6 @@ export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Background Switcher for Previewing & Choosing */}
-      {onSelectBg && (
-        <div className="mt-6 flex flex-col items-center gap-2.5 relative z-20">
-          <div className="flex items-center justify-between w-full px-1">
-            <span className="text-[11px] uppercase tracking-wider font-mono text-zinc-300 flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-white" />
-              <span>Background Theme:</span>
-            </span>
-
-            <button
-              type="button"
-              onClick={() => {
-                sounds.playClick();
-                setIsPeekingBg(!isPeekingBg);
-              }}
-              className={`flex items-center space-x-1.5 text-[11px] font-mono px-2.5 py-1 rounded-lg border transition-all ${
-                isPeekingBg
-                  ? 'bg-white text-black border-white font-bold shadow'
-                  : 'bg-zinc-900/90 text-zinc-300 hover:text-white border-zinc-700 hover:bg-zinc-800'
-              }`}
-              title={isPeekingBg ? 'Restore full form view' : 'Dim form to view background art'}
-            >
-              {isPeekingBg ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-              <span>{isPeekingBg ? 'Show Form' : 'Peek Art'}</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 w-full">
-            {BACKGROUND_OPTIONS.map((bg, idx) => {
-              const isSelected = currentBg === bg.path;
-              return (
-                <button
-                  key={bg.id}
-                  type="button"
-                  onClick={() => {
-                    sounds.playClick();
-                    onSelectBg(bg.path);
-                  }}
-                  className={`py-2 px-2 rounded-xl border text-xs font-mono font-bold transition-all flex flex-col items-center justify-center gap-0.5 ${
-                    isSelected
-                      ? 'bg-white text-black border-white shadow-xl scale-[1.02]'
-                      : 'bg-zinc-950/80 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white backdrop-blur-md'
-                  }`}
-                >
-                  <span className="text-[9px] uppercase tracking-wider opacity-70">Image {idx + 1}</span>
-                  <span className="truncate max-w-full text-center text-[11px]">
-                    {bg.shortName}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <p className="text-[11px] font-mono text-zinc-500 text-center">
-            Click to compare all 3 backgrounds live. Tell me which one you like best to keep!
-          </p>
-        </div>
-      )}
     </div>
   );
 };
