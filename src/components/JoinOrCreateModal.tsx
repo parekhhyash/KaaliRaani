@@ -79,9 +79,6 @@ export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
     <div className={`w-full max-w-lg mx-auto p-4 sm:p-6 text-white transition-opacity duration-300 ${isPeekingBg ? 'opacity-20 hover:opacity-100' : 'opacity-100'}`}>
       {/* Branding Hero */}
       <div className="text-center mb-8 relative z-10">
-        <div className="w-16 h-16 rounded-2xl bg-zinc-900/90 backdrop-blur-md border border-zinc-700 flex items-center justify-center mx-auto mb-4 text-3xl font-black text-white shadow-2xl">
-          ♠
-        </div>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">Kaali Raani</h1>
         <p className="text-xs uppercase font-mono tracking-widest text-zinc-400 mt-1">
           Black Queen • 150 Point Indian Card Game
