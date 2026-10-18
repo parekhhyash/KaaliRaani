@@ -32,6 +32,11 @@ function KaaliRaaniGame() {
   
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isCardsHidden, setIsCardsHidden] = useState(false);
+
+  const handleToggleHideCards = () => {
+    setIsCardsHidden((prev) => !prev);
+  };
 
   // Session persistence
   const [savedSession, setSavedSession] = useState<SavedSession | null>(null);
@@ -177,6 +182,8 @@ function KaaliRaaniGame() {
         currentRound={roomState?.currentRound || 0}
         totalRounds={roomState?.totalRounds || 3}
         peerStatus={peerStatus}
+        isCardsHidden={isCardsHidden}
+        onToggleHideCards={handleToggleHideCards}
         onOpenRules={() => setIsRulesOpen(true)}
         onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
       />
@@ -230,6 +237,8 @@ function KaaliRaaniGame() {
                 bidIncrement={roomState.settings.bidIncrement}
                 maxBid={roomState.settings.maxBid}
                 myHand={myPlayer?.hand || []}
+                isCardsHidden={isCardsHidden}
+                onToggleHideCards={handleToggleHideCards}
                 onPlaceBid={handlePlaceBid}
                 onPassBid={handlePassBid}
               />
@@ -242,6 +251,8 @@ function KaaliRaaniGame() {
                 declarerUsername={declarerPlayer?.username || 'Declarer'}
                 highestBid={roomState.highestBid}
                 myHand={myPlayer?.hand || []}
+                isCardsHidden={isCardsHidden}
+                onToggleHideCards={handleToggleHideCards}
                 onConfirm={handleSelectTrumpAndPartner}
               />
             )}
@@ -251,6 +262,8 @@ function KaaliRaaniGame() {
               <GameBoard
                 state={roomState}
                 myPlayerId={myPlayer?.id || ''}
+                isCardsHidden={isCardsHidden}
+                onToggleHideCards={handleToggleHideCards}
                 onPlayCard={handlePlayCard}
                 onSendChat={handleSendChat}
               />
@@ -262,6 +275,8 @@ function KaaliRaaniGame() {
                 <GameBoard
                   state={roomState}
                   myPlayerId={myPlayer?.id || ''}
+                  isCardsHidden={isCardsHidden}
+                  onToggleHideCards={handleToggleHideCards}
                   onPlayCard={handlePlayCard}
                   onSendChat={handleSendChat}
                 />
@@ -284,6 +299,8 @@ function KaaliRaaniGame() {
                 <GameBoard
                   state={roomState}
                   myPlayerId={myPlayer?.id || ''}
+                  isCardsHidden={isCardsHidden}
+                  onToggleHideCards={handleToggleHideCards}
                   onPlayCard={handlePlayCard}
                   onSendChat={handleSendChat}
                 />

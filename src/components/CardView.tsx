@@ -26,17 +26,20 @@ export const CardView: React.FC<CardViewProps> = ({
   if (isFaceDown || !card) {
     // Face-down card representation
     const sizeClasses = {
-      sm: 'w-10 h-14 text-xs',
-      md: 'w-14 h-20 text-sm',
-      lg: 'w-20 h-28 text-base',
+      sm: 'w-12 h-16 text-xs',
+      md: 'w-16 h-24 text-sm sm:w-20 sm:h-28 sm:text-base',
+      lg: 'w-24 h-36 text-lg',
     }[size];
 
     return (
       <div
-        className={`${sizeClasses} bg-zinc-950 border border-zinc-700 rounded-lg flex items-center justify-center relative overflow-hidden shadow-md select-none ${className}`}
+        onClick={onClick}
+        className={`${sizeClasses} bg-zinc-950 border border-zinc-700/80 rounded-xl flex items-center justify-center relative overflow-hidden shadow-md select-none transition-all duration-150 ${
+          onClick ? 'cursor-pointer hover:border-zinc-500' : ''
+        } ${className}`}
       >
-        <div className="absolute inset-1 border border-zinc-800 rounded flex items-center justify-center">
-          <div className="w-4 h-4 rounded-full border border-zinc-700 flex items-center justify-center text-[10px] text-zinc-500 font-mono">
+        <div className="absolute inset-1.5 border border-zinc-800 rounded-lg flex items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-950 to-black">
+          <div className="w-6 h-6 rounded-full border border-zinc-700 flex items-center justify-center text-xs text-zinc-500 font-mono shadow-inner">
             ♠
           </div>
         </div>

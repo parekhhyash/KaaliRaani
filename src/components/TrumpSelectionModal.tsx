@@ -5,13 +5,15 @@ import { Card, Suit, Rank } from '@/types/game';
 import { SUITS, RANKS, SUIT_SYMBOLS, CARD_POINTS } from '@/lib/constants';
 import { CardView } from './CardView';
 import { sounds } from '@/lib/audio';
-import { Check, Shield, UserCheck } from 'lucide-react';
+import { Check, Shield, UserCheck, Eye, EyeOff } from 'lucide-react';
 
 interface TrumpSelectionModalProps {
   isDeclarer: boolean;
   declarerUsername: string;
   highestBid: number;
   myHand: Card[];
+  isCardsHidden?: boolean;
+  onToggleHideCards?: () => void;
   onConfirm: (trumpSuit: Suit, calledCard: Card) => void;
 }
 
@@ -20,6 +22,8 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
   declarerUsername,
   highestBid,
   myHand,
+  isCardsHidden = false,
+  onToggleHideCards,
   onConfirm,
 }) => {
   const [selectedSuit, setSelectedSuit] = useState<Suit>('spades');
@@ -54,10 +58,36 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
 
         {/* Hand Preview */}
         <div className="mt-8 pt-6 border-t border-zinc-800">
-          <div className="text-xs uppercase font-mono text-zinc-400 mb-3">Your Hand</div>
+          <div className="flex items-center justify-between mb-3 px-2">
+            <span className="text-xs uppercase font-mono text-zinc-400">Your Hand ({myHand.length} cards)</span>
+            {onToggleHideCards && (
+              <button
+                type="button"
+                onClick={() => {
+                  sounds.playClick();
+                  onToggleHideCards();
+                }}
+                className={`flex items-center space-x-1.5 px-2 py-0.5 rounded text-[11px] font-mono border transition-all ${
+                  isCardsHidden
+                    ? 'bg-white text-black border-white font-bold shadow'
+                    : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border-zinc-700'
+                }`}
+                title={isCardsHidden ? 'Show cards' : 'Hide cards'}
+              >
+                {isCardsHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                <span>{isCardsHidden ? 'Show Cards' : 'Hide Cards'}</span>
+              </button>
+            )}
+          </div>
           <div className="flex flex-wrap items-center justify-center gap-1.5 py-2">
             {myHand.map((card) => (
-              <CardView key={card.id} card={card} isPlayable={false} size="sm" />
+              <CardView
+                key={card.id}
+                card={card}
+                isFaceDown={isCardsHidden}
+                isPlayable={false}
+                size="sm"
+              />
             ))}
           </div>
         </div>
@@ -176,12 +206,38 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
 
         {/* Hand Preview to avoid calling your own card unintentionally */}
         <div>
-          <div className="text-xs uppercase font-mono text-zinc-400 mb-2">
-            Your Hand (You hold these {myHand.length} cards):
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs uppercase font-mono text-zinc-400">
+              Your Hand (You hold these {myHand.length} cards):
+            </span>
+            {onToggleHideCards && (
+              <button
+                type="button"
+                onClick={() => {
+                  sounds.playClick();
+                  onToggleHideCards();
+                }}
+                className={`flex items-center space-x-1.5 px-2 py-0.5 rounded text-[11px] font-mono border transition-all ${
+                  isCardsHidden
+                    ? 'bg-white text-black border-white font-bold shadow'
+                    : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border-zinc-700'
+                }`}
+                title={isCardsHidden ? 'Show cards' : 'Hide cards'}
+              >
+                {isCardsHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                <span>{isCardsHidden ? 'Show Cards' : 'Hide Cards'}</span>
+              </button>
+            )}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-1.5 overflow-x-auto py-1">
             {myHand.map((card) => (
-              <CardView key={card.id} card={card} isPlayable={false} size="sm" />
+              <CardView
+                key={card.id}
+                card={card}
+                isFaceDown={isCardsHidden}
+                isPlayable={false}
+                size="sm"
+              />
             ))}
           </div>
         </div>

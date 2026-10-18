@@ -6,11 +6,13 @@ import { CardView } from './CardView';
 import { SUIT_SYMBOLS } from '@/lib/constants';
 import { isLegalPlay } from '@/lib/deck';
 import { sounds } from '@/lib/audio';
-import { Crown, UserCheck, Bot, Sparkles, MessageSquare } from 'lucide-react';
+import { Crown, UserCheck, Bot, Sparkles, MessageSquare, Eye, EyeOff } from 'lucide-react';
 
 interface GameBoardProps {
   state: RoomState;
   myPlayerId: string;
+  isCardsHidden?: boolean;
+  onToggleHideCards?: () => void;
   onPlayCard: (cardId: string) => void;
   onSendChat?: (text: string) => void;
 }
@@ -18,6 +20,8 @@ interface GameBoardProps {
 export const GameBoard: React.FC<GameBoardProps> = ({
   state,
   myPlayerId,
+  isCardsHidden = false,
+  onToggleHideCards,
   onPlayCard,
 }) => {
   const {
@@ -35,6 +39,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   } = state;
 
   const [showLogs, setShowLogs] = useState(false);
+  const [peekCardId, setPeekCardId] = useState<string | null>(null);
 
   const me = players.find((p) => p.id === myPlayerId) || players[0];
   const mySeat = me.seatIndex;
@@ -62,9 +67,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const rightPlayer = getPlayerAtOffset(3);
 
   const handleCardClick = (card: Card) => {
+    if (isCardsHidden) {
+      if (peekCardId !== card.id) {
+        sounds.playClick();
+        setPeekCardId(card.id);
+        return;
+      }
+    }
+
     if (!isMyTurn) return;
     if (isLegalPlay(card, me.hand, currentTrick.leadSuit)) {
       sounds.playCardPlay();
+      setPeekCardId(null);
       onPlayCard(card.id);
     }
   };
@@ -311,23 +325,54 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         {/* Cards in Hand */}
         <div className="w-full bg-zinc-950/80 border border-zinc-800/80 rounded-2xl p-3 sm:p-4 shadow-2xl flex flex-col items-center">
           <div className="w-full flex items-center justify-between text-xs text-zinc-400 font-mono px-2 mb-2">
-            <span>
-              Your Hand: <strong className="text-white">{me.hand.length} cards</strong>
-            </span>
-            <span>
+            <div className="flex items-center space-x-2">
+              <span>
+                Your Hand: <strong className="text-white">{me.hand.length} cards</strong>
+              </span>
+              {onToggleHideCards && (
+                <button
+                  onClick={() => {
+                    sounds.playClick();
+                    onToggleHideCards();
+                  }}
+                  className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-mono border transition-all ${
+                    isCardsHidden
+                      ? 'bg-white text-black border-white font-bold shadow'
+                      : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border-zinc-700'
+                  }`}
+                  title={isCardsHidden ? 'Show cards' : 'Hide cards from nearby viewers'}
+                >
+                  {isCardsHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                  <span>{isCardsHidden ? 'Show Cards' : 'Hide Cards'}</span>
+                </button>
+              )}
+            </div>
+            <div>
               Card Points in Hand:{' '}
-              <strong className="text-white">{me.hand.reduce((s, c) => s + c.points, 0)} pts</strong>
-            </span>
+              <strong className="text-white">
+                {isCardsHidden ? '••••' : `${me.hand.reduce((s, c) => s + c.points, 0)} pts`}
+              </strong>
+            </div>
           </div>
+
+          {/* Helper when hidden */}
+          {isCardsHidden && (
+            <div className="text-[11px] text-zinc-500 font-mono mb-2 flex items-center gap-1.5">
+              <span>🔒 Cards hidden for privacy. Click a card to peek, or toggle 'Show Cards'.</span>
+            </div>
+          )}
 
           {/* Fan / Horizontally Scrollable Hand of Cards */}
           <div className="w-full flex items-center justify-center gap-1 sm:gap-2 overflow-x-auto py-2 px-1">
             {me.hand.map((card) => {
               const legal = isLegalPlay(card, me.hand, currentTrick.leadSuit);
+              const isHidden = isCardsHidden && peekCardId !== card.id;
+
               return (
                 <CardView
                   key={card.id}
                   card={card}
+                  isFaceDown={isHidden}
                   isPlayable={isMyTurn && legal}
                   onClick={() => handleCardClick(card)}
                   size="md"

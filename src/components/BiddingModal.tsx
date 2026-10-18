@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Player, Card } from '@/types/game';
 import { CardView } from './CardView';
 import { sounds } from '@/lib/audio';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Eye, EyeOff } from 'lucide-react';
 
 interface BiddingModalProps {
   currentBidderId?: string;
@@ -16,6 +16,8 @@ interface BiddingModalProps {
   bidIncrement: number;
   maxBid: number;
   myHand: Card[];
+  isCardsHidden?: boolean;
+  onToggleHideCards?: () => void;
   onPlaceBid: (amount: number) => void;
   onPassBid: () => void;
 }
@@ -30,6 +32,8 @@ export const BiddingModal: React.FC<BiddingModalProps> = ({
   bidIncrement,
   maxBid,
   myHand,
+  isCardsHidden = false,
+  onToggleHideCards,
   onPlaceBid,
   onPassBid,
 }) => {
@@ -195,20 +199,47 @@ export const BiddingModal: React.FC<BiddingModalProps> = ({
       {/* Hand Preview Area */}
       <div className="w-full bg-zinc-950/80 border border-zinc-800 rounded-2xl p-4 shadow-xl">
         <div className="flex items-center justify-between mb-3 px-2">
-          <div className="text-xs uppercase font-mono text-zinc-400 tracking-wider">
-            Your Hand ({myHand.length} cards) — Check your points before bidding
+          <div className="flex items-center space-x-2">
+            <span className="text-xs uppercase font-mono text-zinc-400 tracking-wider">
+              Your Hand ({myHand.length} cards)
+            </span>
+            {onToggleHideCards && (
+              <button
+                type="button"
+                onClick={() => {
+                  sounds.playClick();
+                  onToggleHideCards();
+                }}
+                className={`flex items-center space-x-1.5 px-2 py-0.5 rounded text-[11px] font-mono border transition-all ${
+                  isCardsHidden
+                    ? 'bg-white text-black border-white font-bold shadow'
+                    : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border-zinc-700'
+                }`}
+                title={isCardsHidden ? 'Show cards' : 'Hide cards from nearby viewers'}
+              >
+                {isCardsHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                <span>{isCardsHidden ? 'Show Cards' : 'Hide Cards'}</span>
+              </button>
+            )}
           </div>
           <div className="text-xs font-mono text-zinc-400">
             Points in Hand:{' '}
             <strong className="text-white">
-              {myHand.reduce((sum, c) => sum + c.points, 0)} pts
+              {isCardsHidden ? '••••' : `${myHand.reduce((sum, c) => sum + c.points, 0)} pts`}
             </strong>
           </div>
         </div>
 
+        {/* Fan / Horizontally Scrollable Hand of Cards */}
         <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 overflow-x-auto py-2">
           {myHand.map((card) => (
-            <CardView key={card.id} card={card} isPlayable={false} size="sm" />
+            <CardView
+              key={card.id}
+              card={card}
+              isFaceDown={isCardsHidden}
+              isPlayable={false}
+              size="sm"
+            />
           ))}
         </div>
       </div>
