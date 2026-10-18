@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { RoomState, Suit, Card, GameSettings } from '@/types/game';
 import { PeerGameManager, PeerStatus } from '@/lib/p2p/peerManager';
@@ -39,6 +38,25 @@ function KaaliRaaniGame() {
 
   const handleToggleHideCards = () => {
     setIsCardsHidden((prev) => !prev);
+  };
+
+  // Landing page background wallpaper choice
+  const [selectedBg, setSelectedBg] = useState<string>('/bg-1.jpg');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedBg = localStorage.getItem('kr_landing_bg');
+      if (savedBg) {
+        setSelectedBg(savedBg);
+      }
+    }
+  }, []);
+
+  const handleSelectBg = (bg: string) => {
+    setSelectedBg(bg);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('kr_landing_bg', bg);
+    }
   };
 
   // Session persistence
@@ -238,7 +256,22 @@ function KaaliRaaniGame() {
   const declarerPlayer = roomState?.players.find((p) => p.id === roomState?.declarerId);
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col justify-between selection:bg-white selection:text-black">
+    <div className="relative min-h-screen bg-black text-white flex flex-col justify-between selection:bg-white selection:text-black overflow-x-hidden">
+      {/* Background Wallpaper on Landing Page */}
+      {!roomState && (
+        <div
+          className="fixed inset-0 z-0 bg-cover bg-center sm:bg-right bg-no-repeat transition-all duration-700 ease-in-out pointer-events-none"
+          style={{
+            backgroundImage: `url(${selectedBg})`,
+          }}
+        >
+          {/* Subtle vignette overlays to blend edges seamlessly into pure black */}
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-[0.5px]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/70" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+        </div>
+      )}
+
       {/* Top Navigation */}
       <Navbar
         roomCode={roomState?.roomCode || ''}
@@ -253,7 +286,7 @@ function KaaliRaaniGame() {
       />
 
       {/* Main Game Screen */}
-      <main className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full">
         {/* Connection message notification if error */}
         {peerStatus === 'error' && (
           <div className="w-full max-w-lg mb-4 p-3 bg-rose-950/80 border border-rose-700 rounded-xl text-rose-300 text-xs text-center font-mono">
@@ -263,37 +296,18 @@ function KaaliRaaniGame() {
 
         {/* 1. LANDING: CREATE OR JOIN ROOM */}
         {!roomState ? (
-          <>
-            <JoinOrCreateModal
-              initialRoomCode={initialRoomFromUrl}
-              hasPreviousSession={!!savedSession}
-              previousRoomCode={savedSession?.roomCode}
-              previousUsername={savedSession?.username}
-              onCreateRoom={handleCreateRoom}
-              onJoinRoom={handleJoinRoom}
-              onResumeSession={handleResumeSession}
-              onOpenRules={() => setIsRulesOpen(true)}
-            />
-
-            {/* Bottom-right Kaali Raani Artwork */}
-            <div
-              className="fixed bottom-0 right-0 z-0 pointer-events-none select-none max-w-[220px] sm:max-w-[280px] md:max-w-[340px] lg:max-w-[400px] xl:max-w-[450px] opacity-40 sm:opacity-60 md:opacity-80 lg:opacity-90 transition-opacity duration-500"
-              aria-hidden="true"
-            >
-              <Image
-                src="/black-queen.jpg"
-                alt="Kaali Raani - Black Queen"
-                width={450}
-                height={600}
-                priority
-                className="w-full h-auto object-contain"
-                style={{
-                  maskImage: 'radial-gradient(ellipse at 80% 80%, rgba(0,0,0,1) 45%, rgba(0,0,0,0.4) 75%, transparent 100%)',
-                  WebkitMaskImage: 'radial-gradient(ellipse at 80% 80%, rgba(0,0,0,1) 45%, rgba(0,0,0,0.4) 75%, transparent 100%)',
-                }}
-              />
-            </div>
-          </>
+          <JoinOrCreateModal
+            initialRoomCode={initialRoomFromUrl}
+            hasPreviousSession={!!savedSession}
+            previousRoomCode={savedSession?.roomCode}
+            previousUsername={savedSession?.username}
+            onCreateRoom={handleCreateRoom}
+            onJoinRoom={handleJoinRoom}
+            onResumeSession={handleResumeSession}
+            onOpenRules={() => setIsRulesOpen(true)}
+            currentBg={selectedBg}
+            onSelectBg={handleSelectBg}
+          />
         ) : (
           <>
             {/* 2. LOBBY */}
@@ -418,7 +432,7 @@ function KaaliRaaniGame() {
       />
 
       {/* Footer */}
-      <footer className="w-full border-t border-zinc-900 py-3.5 px-4 text-center text-xs text-zinc-500 font-mono flex items-center justify-center relative z-10 bg-black/60 backdrop-blur-sm">
+      <footer className="w-full border-t border-zinc-900 py-3.5 px-4 text-center text-xs text-zinc-500 font-mono flex items-center justify-center">
         <span>
           Made with ❤️ by{' '}
           <a
