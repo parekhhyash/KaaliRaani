@@ -487,8 +487,8 @@ export class PeerGameManager {
     if (!this.isHost || !this.currentState) return;
     let state = this.currentState;
 
-    // Must have at least 2 players to start
-    if (state.players.length < 2) {
+    // Must have at least 4 players to start (minimum 4, capped at 6)
+    while (state.players.length < 4) {
       state = addBotPlayer(state);
     }
 
@@ -535,7 +535,7 @@ export class PeerGameManager {
 
   public addBot() {
     if (!this.isHost || !this.currentState) return;
-    const maxAllowed = this.currentState.settings.maxPlayers || MAX_PLAYERS;
+    const maxAllowed = MAX_PLAYERS;
     if (this.currentState.players.length >= maxAllowed) return;
     const updated = addBotPlayer(this.currentState);
     this.broadcastState(updated);

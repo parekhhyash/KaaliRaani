@@ -60,7 +60,7 @@ export const GameLobby: React.FC<GameLobbyProps> = ({
   };
 
   const totalPlayers = players.length;
-  const maxPlayers = settings.maxPlayers || 4;
+  const maxPlayers = 6;
   const emptySlots = Math.max(0, maxPlayers - totalPlayers);
 
   return (
@@ -111,7 +111,7 @@ export const GameLobby: React.FC<GameLobbyProps> = ({
           Game Settings {isHost ? '(Host Only)' : '(Set by Host)'}
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div>
           {/* Number of Rounds */}
           <div>
             <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
@@ -142,60 +142,26 @@ export const GameLobby: React.FC<GameLobbyProps> = ({
               </div>
             )}
           </div>
-
-          {/* Room Capacity (2 to 6 Players) */}
-          <div>
-            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-              Room Capacity: <span className="text-white font-mono font-bold">{maxPlayers} Players</span>
-            </label>
-            {isHost ? (
-              <div className="flex items-center space-x-1.5">
-                {[2, 3, 4, 5, 6].map((num) => (
-                  <button
-                    key={num}
-                    onClick={() => {
-                      sounds.playClick();
-                      onUpdateSettings({ maxPlayers: num });
-                    }}
-                    className={`flex-1 py-2 rounded-lg text-xs font-mono font-bold transition-all border ${
-                      maxPlayers === num
-                        ? 'bg-white text-black border-white shadow'
-                        : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white'
-                    }`}
-                  >
-                    {num}P
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-300 font-mono">
-                {maxPlayers} Players Max
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Distribution Details Note */}
         <div className="mt-4 pt-3 border-t border-zinc-800/80 text-[11px] font-mono text-zinc-400 flex flex-wrap items-center justify-between gap-2">
           <span>• 150 Points Total (♠Q=30, A=15, 10=10, 5=5)</span>
           <span className="text-zinc-500">
-            {totalPlayers === 6 && '6 Players: 8 cards each (all 4 twos removed)'}
-            {totalPlayers === 5 && '5 Players: 10 cards each (2 twos removed)'}
-            {totalPlayers === 4 && '4 Players: 13 cards each (full deck)'}
-            {totalPlayers === 3 && '3 Players: 17 cards each (1 two removed)'}
-            {totalPlayers === 2 && '2 Players: 26 cards each (full deck)'}
-            {totalPlayers < 2 && 'Even distribution removes only 0-pt 2s to preserve 150 points'}
+            {totalPlayers >= 4
+              ? `${totalPlayers} Players (${totalPlayers === 6 ? '8' : totalPlayers === 5 ? '10' : '13'} cards each)`
+              : 'Minimum 4 players required (join with code or add bots)'}
           </span>
         </div>
       </div>
 
-      {/* Players List (2-6 Seats) */}
+      {/* Players List (4 to 6 Seats) */}
       <div className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-6 mb-8 shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <Users className="w-4 h-4 text-white" />
             <h3 className="text-sm font-bold uppercase tracking-wider font-mono text-zinc-300">
-              Players ({totalPlayers} / {maxPlayers})
+              Players ({totalPlayers} / 6)
             </h3>
           </div>
 
@@ -257,34 +223,42 @@ export const GameLobby: React.FC<GameLobbyProps> = ({
           ))}
 
           {/* Empty Seats */}
-          {Array.from({ length: emptySlots }).map((_, i) => (
-            <div
-              key={`empty-${i}`}
-              className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-950/60 border border-dashed border-zinc-800 text-zinc-600"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-lg border border-dashed border-zinc-800 flex items-center justify-center text-xs font-mono">
-                  {totalPlayers + i + 1}
+          {Array.from({ length: emptySlots }).map((_, i) => {
+            const seatNumber = totalPlayers + i + 1;
+            const isRequired = seatNumber <= 4;
+            return (
+              <div
+                key={`empty-${i}`}
+                className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-950/60 border border-dashed border-zinc-800 text-zinc-600"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-lg border border-dashed border-zinc-800 flex items-center justify-center text-xs font-mono">
+                    {seatNumber}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-zinc-500">
+                      {isRequired ? 'Seat Required (Player or Bot)' : 'Optional Seat'}
+                    </div>
+                    <div className="text-[11px] text-zinc-600 font-mono">
+                      {isRequired ? 'Min 4 players needed to play' : 'Max 6 players'}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-sm font-medium text-zinc-500">Waiting for player...</div>
-                  <div className="text-[11px] text-zinc-600 font-mono">Share invite link</div>
-                </div>
-              </div>
 
-              {isHost && (
-                <button
-                  onClick={() => {
-                    sounds.playClick();
-                    onAddBot();
-                  }}
-                  className="text-xs text-zinc-400 hover:text-white px-2 py-1 rounded bg-zinc-900 border border-zinc-800 transition-colors"
-                >
-                  + Add Bot
-                </button>
-              )}
-            </div>
-          ))}
+                {isHost && (
+                  <button
+                    onClick={() => {
+                      sounds.playClick();
+                      onAddBot();
+                    }}
+                    className="text-xs text-zinc-400 hover:text-white px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors"
+                  >
+                    + Add Bot
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -301,12 +275,12 @@ export const GameLobby: React.FC<GameLobbyProps> = ({
             >
               <Play className="w-5 h-5 fill-current" />
               <span>
-                {totalPlayers >= 2
+                {totalPlayers >= 4
                   ? `Start Match (${totalPlayers} Players)`
-                  : 'Add Bot & Start (2 Players)'}
+                  : `Start Match (Auto-fills ${4 - totalPlayers} Bot${4 - totalPlayers > 1 ? 's' : ''} to 4)`}
               </span>
             </button>
-            {totalPlayers < maxPlayers && totalPlayers >= 2 && (
+            {totalPlayers < maxPlayers && (
               <button
                 onClick={() => {
                   sounds.playClick();
@@ -315,7 +289,7 @@ export const GameLobby: React.FC<GameLobbyProps> = ({
                 className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 py-1 px-3 rounded-lg hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add AI Bot to fill ({totalPlayers}/{maxPlayers})</span>
+                <span>Add AI Bot ({totalPlayers}/6)</span>
               </button>
             )}
           </div>

@@ -61,7 +61,7 @@ export function createInitialRoomState(
 }
 
 export function addPlayerToRoom(state: RoomState, playerInfo: { id: string; username: string }): RoomState {
-  const maxAllowed = state.settings.maxPlayers || MAX_PLAYERS;
+  const maxAllowed = MAX_PLAYERS;
   if (state.players.length >= maxAllowed) {
     // Check if player is rejoining with same username
     const existing = state.players.find(
@@ -161,7 +161,7 @@ export function reconnectPlayer(state: RoomState, username: string, newId: strin
 }
 
 export function addBotPlayer(state: RoomState): RoomState {
-  const maxAllowed = state.settings.maxPlayers || MAX_PLAYERS;
+  const maxAllowed = MAX_PLAYERS;
   if (state.players.length >= maxAllowed) {
     return state;
   }
