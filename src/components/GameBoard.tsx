@@ -53,6 +53,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     }
   }, [isPartnerRevealed]);
 
+  // Sound trigger on trick won
+  useEffect(() => {
+    if (currentTrick.winnerPlayerId) {
+      sounds.playTrickWin();
+    }
+  }, [currentTrick.winnerPlayerId, currentTrick.trickNumber]);
+
   const handleCardClick = (card: Card) => {
     if (isCardsHidden) {
       if (peekCardId !== card.id) {
@@ -208,35 +215,57 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
           {/* 1. If cards have been played in current trick */}
           {currentTrick.cards.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 z-10 w-full px-2">
-              {currentTrick.cards.map((play, idx) => {
-                const isLead = idx === 0;
-                const isMe = play.playerId === me.id;
-                return (
-                  <div
-                    key={play.playerId}
-                    className="flex flex-col items-center animate-in zoom-in-95 duration-150"
-                  >
-                    <div className="relative">
-                      <CardView card={play.card} size="sm" isPlayable={false} />
-                      {isLead && (
-                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-black px-1.5 py-0.2 rounded shadow uppercase font-mono">
-                          Lead
-                        </span>
-                      )}
-                    </div>
-                    <span
-                      className={`text-[10px] sm:text-xs font-mono mt-1 px-1.5 py-0.5 rounded truncate max-w-[80px] sm:max-w-[100px] text-center ${
-                        isMe
-                          ? 'bg-white text-black font-extrabold'
-                          : 'text-zinc-300 bg-zinc-900/90 border border-zinc-800'
+            <div className="flex flex-col items-center z-10 w-full px-2">
+              <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 w-full">
+                {currentTrick.cards.map((play, idx) => {
+                  const isLead = idx === 0;
+                  const isMe = play.playerId === me.id;
+                  const isWinner = play.playerId === currentTrick.winnerPlayerId;
+                  return (
+                    <div
+                      key={play.playerId}
+                      className={`flex flex-col items-center animate-in zoom-in-95 duration-150 transition-all ${
+                        isWinner ? 'scale-105' : ''
                       }`}
                     >
-                      {isMe ? 'You' : play.playerUsername}
-                    </span>
-                  </div>
-                );
-              })}
+                      <div className={`relative rounded-xl ${isWinner ? 'ring-2 ring-white shadow-2xl shadow-white/30' : ''}`}>
+                        <CardView card={play.card} size="sm" isPlayable={false} />
+                        {isLead && !isWinner && (
+                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-black px-1.5 py-0.2 rounded shadow uppercase font-mono">
+                            Lead
+                          </span>
+                        )}
+                        {isWinner && (
+                          <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-lg uppercase font-mono flex items-center gap-0.5 whitespace-nowrap">
+                            👑 Won
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className={`text-[10px] sm:text-xs font-mono mt-1 px-1.5 py-0.5 rounded truncate max-w-[80px] sm:max-w-[100px] text-center ${
+                          isWinner
+                            ? 'bg-white text-black font-extrabold'
+                            : isMe
+                            ? 'bg-zinc-800 text-white font-bold'
+                            : 'text-zinc-300 bg-zinc-900/90 border border-zinc-800'
+                        }`}
+                      >
+                        {isMe ? 'You' : play.playerUsername}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Winner Announcement Banner during pause */}
+              {currentTrick.winnerPlayerId && (
+                <div className="mt-3.5 px-4 py-1.5 rounded-full bg-white text-black font-black text-xs sm:text-sm animate-pulse shadow-2xl flex items-center gap-1.5">
+                  <Crown className="w-4 h-4 fill-current" />
+                  <span>
+                    {currentTrick.winnerUsername} won Trick {currentTrick.trickNumber}! (+{currentTrick.trickPoints} card pts)
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -287,7 +316,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       <div className="w-full max-w-5xl mt-2 flex flex-col items-center">
         {/* Turn Prompt Banner */}
         <div className="mb-2 flex items-center justify-center">
-          {isMyTurn ? (
+          {currentTrick.winnerPlayerId ? (
+            <div className="bg-zinc-900 border border-zinc-700 text-zinc-300 px-4 py-1.5 rounded-full text-xs font-mono flex items-center gap-2 shadow">
+              <span className="inline-block animate-spin text-white">♠</span>
+              <span>Trick complete! Starting next play in a moment...</span>
+            </div>
+          ) : isMyTurn ? (
             <div className="bg-white text-black px-4 py-1.5 rounded-full font-black text-xs sm:text-sm tracking-wide animate-pulse shadow-lg flex items-center gap-2">
               <span>YOUR TURN</span>
               <span className="font-normal font-mono text-zinc-700 text-xs">

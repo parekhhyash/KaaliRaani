@@ -13,6 +13,7 @@ import {
   passBid,
   selectTrumpAndPartner,
   playCard,
+  advanceTrickOrRound,
 } from '../gameEngine';
 import { botChooseCardToPlay, botChooseTrumpAndPartner, evaluateBotBid } from '../botAi';
 
@@ -39,6 +40,7 @@ export class PeerGameManager {
   
   private botTimer: NodeJS.Timeout | null = null;
   private inactivityInterval: NodeJS.Timeout | null = null;
+  private trickTransitionTimer: NodeJS.Timeout | null = null;
   private isDestroyed: boolean = false;
 
   constructor() {
@@ -104,6 +106,23 @@ export class PeerGameManager {
       }
     }
     this.onStateChangeCallbacks.forEach((cb) => cb(newState));
+
+    // If a trick just completed (all cards played and winner evaluated), pause a few seconds
+    // to let all players see the last played card and the trick winner before clearing the table.
+    if (
+      this.isHost &&
+      newState.phase === 'playing' &&
+      newState.currentTrick.winnerPlayerId &&
+      newState.currentTrick.cards.length >= newState.players.length
+    ) {
+      if (this.trickTransitionTimer) clearTimeout(this.trickTransitionTimer);
+      this.trickTransitionTimer = setTimeout(() => {
+        if (!this.currentState || this.currentState.phase !== 'playing') return;
+        const nextState = advanceTrickOrRound(this.currentState);
+        this.broadcastState(nextState);
+      }, 2500); // 2.5 second pause to view completed trick
+      return;
+    }
 
     // If host, check if next turn belongs to a bot
     if (this.isHost) {
@@ -584,6 +603,7 @@ export class PeerGameManager {
   public destroy() {
     this.isDestroyed = true;
     if (this.botTimer) clearTimeout(this.botTimer);
+    if (this.trickTransitionTimer) clearTimeout(this.trickTransitionTimer);
     if (this.inactivityInterval) clearInterval(this.inactivityInterval);
     try {
       if (this.peer) this.peer.destroy();

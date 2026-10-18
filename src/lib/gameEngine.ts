@@ -617,19 +617,41 @@ export function playCard(state: RoomState, playerId: string, cardId: string): Ro
     type: 'trick',
   });
 
-  const nextTrickNumber = state.currentTrick.trickNumber + 1;
+  // Keep completed trick on board so players can view the last card played and who won.
+  // currentTurnPlayerId is cleared to pause input until advanceTrickOrRound is triggered.
+  return {
+    ...state,
+    players: updatedPlayers,
+    isPartnerRevealed,
+    currentTrick: completedTrick,
+    currentTurnPlayerId: undefined,
+    actionLogs: logs,
+    lastActiveAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+}
+
+export function advanceTrickOrRound(state: RoomState): RoomState {
+  if (state.phase !== 'playing') return state;
+  const completedTrick = state.currentTrick;
+  if (!completedTrick.winnerPlayerId) return state;
+
+  const numPlayers = state.players.length;
+  const nextTrickNumber = completedTrick.trickNumber + 1;
   const maxTricks = state.totalTricks || Math.floor(52 / numPlayers);
-  const isRoundOver = nextTrickNumber > maxTricks || updatedPlayers.every((p) => p.hand.length === 0);
+  const isRoundOver = nextTrickNumber > maxTricks || state.players.every((p) => p.hand.length === 0);
 
   if (isRoundOver) {
     return finalizeRound({
       ...state,
-      players: updatedPlayers,
       isPartnerRevealed: true,
-      currentTrick: completedTrick,
+      currentTrick: {
+        trickNumber: completedTrick.trickNumber,
+        leadPlayerId: '',
+        cards: [],
+      },
       previousTrick: completedTrick,
       completedTricks: [...state.completedTricks, completedTrick],
-      actionLogs: logs,
       lastActiveAt: Date.now(),
     });
   }
@@ -637,17 +659,14 @@ export function playCard(state: RoomState, playerId: string, cardId: string): Ro
   // Continue to next trick
   return {
     ...state,
-    players: updatedPlayers,
-    isPartnerRevealed,
     currentTrick: {
       trickNumber: nextTrickNumber,
-      leadPlayerId: winningPlay.playerId,
+      leadPlayerId: completedTrick.winnerPlayerId,
       cards: [],
     },
     previousTrick: completedTrick,
     completedTricks: [...state.completedTricks, completedTrick],
-    currentTurnPlayerId: winningPlay.playerId,
-    actionLogs: logs,
+    currentTurnPlayerId: completedTrick.winnerPlayerId,
     lastActiveAt: Date.now(),
     updatedAt: Date.now(),
   };
