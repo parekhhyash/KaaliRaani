@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Player, RoundResult } from '@/types/game';
-import { Trophy, Crown, RotateCcw } from 'lucide-react';
+import { Trophy, Crown, RotateCcw, LogOut } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { sounds } from '@/lib/audio';
 
@@ -12,6 +12,7 @@ interface FinalLeaderboardModalProps {
   totalRounds: number;
   isHost: boolean;
   onRestartGame: () => void;
+  onEndMatch: () => void;
 }
 
 export const FinalLeaderboardModal: React.FC<FinalLeaderboardModalProps> = ({
@@ -19,7 +20,9 @@ export const FinalLeaderboardModal: React.FC<FinalLeaderboardModalProps> = ({
   totalRounds,
   isHost,
   onRestartGame,
+  onEndMatch,
 }) => {
+  const [isConfirmingEnd, setIsConfirmingEnd] = useState(false);
   const sortedPlayers = [...players].sort((a, b) => b.matchScore - a.matchScore);
   const champion = sortedPlayers[0];
 
@@ -134,23 +137,70 @@ export const FinalLeaderboardModal: React.FC<FinalLeaderboardModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-5 border-t border-zinc-800 bg-zinc-900/60 flex items-center justify-between">
-          <div className="text-xs font-mono text-zinc-400">Match Completed</div>
+        <div className="p-5 border-t border-zinc-800 bg-zinc-900/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-xs font-mono text-zinc-400">
+            {isHost ? 'Tournament finished • Host actions' : 'Match Completed'}
+          </div>
 
-          {isHost ? (
-            <button
-              onClick={() => {
-                sounds.playClick();
-                onRestartGame();
-              }}
-              className="px-6 py-2.5 bg-white text-black hover:bg-zinc-200 font-extrabold text-sm rounded-xl transition-all flex items-center space-x-2 shadow-lg"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Start New Match</span>
-            </button>
-          ) : (
-            <div className="text-xs font-mono text-zinc-400">Waiting for host to start a new match...</div>
-          )}
+          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
+            {isHost ? (
+              <>
+                {isConfirmingEnd ? (
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setIsConfirmingEnd(false)}
+                      className="px-3 py-2 text-xs font-mono text-zinc-400 hover:text-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        sounds.playClick();
+                        onEndMatch();
+                      }}
+                      className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs sm:text-sm rounded-xl transition-all flex items-center space-x-1.5 shadow-lg"
+                      title="Clear room for all players"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Confirm End Match</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsConfirmingEnd(true)}
+                    className="px-4 sm:px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center space-x-2"
+                    title="End match and clear room for all players"
+                  >
+                    <LogOut className="w-4 h-4 text-zinc-400" />
+                    <span>End Match</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    sounds.playClick();
+                    onRestartGame();
+                  }}
+                  className="px-5 sm:px-6 py-2.5 bg-white text-black hover:bg-zinc-200 font-extrabold text-xs sm:text-sm rounded-xl transition-all flex items-center space-x-2 shadow-lg hover:scale-[1.01]"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Start New Match</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  sounds.playClick();
+                  onEndMatch();
+                }}
+                className="px-4 sm:px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center space-x-2"
+                title="Leave match and clear room session"
+              >
+                <LogOut className="w-4 h-4 text-zinc-400" />
+                <span>Exit Match</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

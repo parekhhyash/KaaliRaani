@@ -143,6 +143,7 @@ export type P2PMessage =
   | { type: 'PLAY_CARD'; playerId: string; cardId: string }
   | { type: 'NEXT_ROUND' }
   | { type: 'RESTART_GAME' }
+  | { type: 'END_MATCH' }
   | { type: 'ADD_BOT' }
   | { type: 'REMOVE_BOT'; playerId: string }
   | { type: 'UPDATE_SETTINGS'; settings: Partial<GameSettings> }

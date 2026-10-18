@@ -37,6 +37,7 @@ export class PeerGameManager {
   private onStateChangeCallbacks: ((state: RoomState) => void)[] = [];
   private onStatusChangeCallbacks: ((status: PeerStatus, message?: string) => void)[] = [];
   private onChatMessageCallbacks: ((msg: { username: string; text: string; timestamp: number }) => void)[] = [];
+  private onRoomEndedCallbacks: (() => void)[] = [];
   
   private botTimer: NodeJS.Timeout | null = null;
   private inactivityInterval: NodeJS.Timeout | null = null;
@@ -89,6 +90,13 @@ export class PeerGameManager {
     this.onChatMessageCallbacks.push(cb);
     return () => {
       this.onChatMessageCallbacks = this.onChatMessageCallbacks.filter((c) => c !== cb);
+    };
+  }
+
+  public subscribeRoomEnded(cb: () => void) {
+    this.onRoomEndedCallbacks.push(cb);
+    return () => {
+      this.onRoomEndedCallbacks = this.onRoomEndedCallbacks.filter((c) => c !== cb);
     };
   }
 
@@ -371,6 +379,16 @@ export class PeerGameManager {
       this.updateState(data.state);
     } else if (data.type === 'CHAT_MESSAGE') {
       this.onChatMessageCallbacks.forEach((cb) => cb(data));
+    } else if (data.type === 'END_MATCH') {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem(`kr_state_${this.roomCode}`);
+          localStorage.removeItem('kaali_raani_session');
+        } catch {}
+      }
+      this.notifyStatus('disconnected', 'The host has ended the match. Room cleared.');
+      this.onRoomEndedCallbacks.forEach((cb) => cb());
+      this.destroy();
     }
   }
 
@@ -498,6 +516,21 @@ export class PeerGameManager {
     }));
     const restarted = startRound({ ...this.currentState, players: resetPlayers, roundResults: [] }, 1);
     this.broadcastState(restarted);
+  }
+
+  public endMatch() {
+    if (this.isHost) {
+      this.broadcastMessage({ type: 'END_MATCH' });
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(`kr_state_${this.roomCode}`);
+        localStorage.removeItem('kaali_raani_session');
+      } catch {}
+    }
+    this.notifyStatus('disconnected', 'Match ended. Room cleared.');
+    this.onRoomEndedCallbacks.forEach((cb) => cb());
+    this.destroy();
   }
 
   public addBot() {

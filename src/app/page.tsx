@@ -117,6 +117,13 @@ function KaaliRaaniGame() {
       if (message) setStatusMessage(message);
     });
 
+    mgr.subscribeRoomEnded(() => {
+      setRoomState(null);
+      setSavedSession(null);
+      setPeerStatus('disconnected');
+      setStatusMessage('The match has ended and the room has been cleared.');
+    });
+
     return mgr;
   };
 
@@ -166,6 +173,23 @@ function KaaliRaaniGame() {
 
   const handleRestartGame = () => {
     manager?.restartGame();
+  };
+
+  const handleEndMatch = () => {
+    const code = roomState?.roomCode;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('kaali_raani_session');
+        if (code) localStorage.removeItem(`kr_state_${code}`);
+      } catch {}
+    }
+    manager?.endMatch();
+    managerRef.current?.destroy();
+    setManager(null);
+    setRoomState(null);
+    setSavedSession(null);
+    setPeerStatus('disconnected');
+    setStatusMessage('Match ended. Room cleared.');
   };
 
   const handleAddBot = () => {
@@ -350,6 +374,7 @@ function KaaliRaaniGame() {
                   totalRounds={roomState.totalRounds}
                   isHost={isHost}
                   onRestartGame={handleRestartGame}
+                  onEndMatch={handleEndMatch}
                 />
               </>
             )}
