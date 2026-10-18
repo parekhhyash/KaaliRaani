@@ -469,11 +469,16 @@ export function selectTrumpAndPartner(
   const declarer = state.players.find((p) => p.id === declarerId);
   const declarerName = declarer ? declarer.username : 'Declarer';
 
+  // Declarer cannot select a card held in their own hand
+  if (declarer && state.players.length > 2 && declarer.hand.some((c) => c.id === calledCard.id)) {
+    return state;
+  }
+
   // Identify partner by card held in hand (in 2-player games, it's 1v1 so declarer is solo)
   let partnerId = declarerId;
   if (state.players.length > 2) {
     for (const player of state.players) {
-      if (player.hand.some((c) => c.id === calledCard.id)) {
+      if (player.id !== declarerId && player.hand.some((c) => c.id === calledCard.id)) {
         partnerId = player.id;
         break;
       }

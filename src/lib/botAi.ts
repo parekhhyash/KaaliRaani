@@ -1,5 +1,5 @@
-import { Card, Suit, Player, RoomState } from '@/types/game';
-import { SUITS, RANK_ORDER } from './constants';
+import { Card, Suit, Player, RoomState, Rank } from '@/types/game';
+import { SUITS, RANK_ORDER, CARD_POINTS } from './constants';
 import { isLegalPlay } from './deck';
 
 /**
@@ -57,7 +57,7 @@ export function botChooseTrumpAndPartner(hand: Card[]): { trumpSuit: Suit; calle
   }
 
   // Partner Card:
-  // Call Ace of an off-suit not in hand, or ♠Q if not in hand!
+  // 1. Call ♠Q if not in hand
   const hasSpadeQueen = hand.some((c) => c.id === 'spades-Q');
   if (!hasSpadeQueen && bestSuit !== 'spades') {
     return {
@@ -66,7 +66,7 @@ export function botChooseTrumpAndPartner(hand: Card[]): { trumpSuit: Suit; calle
     };
   }
 
-  // Otherwise, find an Ace of another suit not in bot's hand
+  // 2. Otherwise, find an Ace of an off-suit not in bot's hand
   for (const suit of SUITS) {
     if (suit !== bestSuit) {
       const hasAce = hand.some((c) => c.suit === suit && c.rank === 'A');
@@ -79,7 +79,37 @@ export function botChooseTrumpAndPartner(hand: Card[]): { trumpSuit: Suit; calle
     }
   }
 
-  // Fallback: King of best suit
+  // 3. Any Ace not in bot's hand
+  for (const suit of SUITS) {
+    const hasAce = hand.some((c) => c.suit === suit && c.rank === 'A');
+    if (!hasAce) {
+      return {
+        trumpSuit: bestSuit,
+        calledCard: { id: `${suit}-A`, suit, rank: 'A', points: 15 },
+      };
+    }
+  }
+
+  // 4. Any high card not in bot's hand
+  const candidateRanks: Rank[] = ['K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
+  for (const r of candidateRanks) {
+    for (const s of SUITS) {
+      const cardId = `${s}-${r}`;
+      if (!hand.some((c) => c.id === cardId)) {
+        return {
+          trumpSuit: bestSuit,
+          calledCard: {
+            id: cardId,
+            suit: s,
+            rank: r,
+            points: CARD_POINTS[cardId] || 0,
+          },
+        };
+      }
+    }
+  }
+
+  // Ultimate fallback (guaranteed never reached with <= 26 cards in hand)
   return {
     trumpSuit: bestSuit,
     calledCard: { id: `${bestSuit}-K`, suit: bestSuit, rank: 'K', points: 0 },

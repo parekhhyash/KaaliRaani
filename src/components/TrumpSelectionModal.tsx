@@ -29,8 +29,23 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
   onConfirm,
 }) => {
   const [selectedSuit, setSelectedSuit] = useState<Suit>('spades');
-  const [partnerSuit, setPartnerSuit] = useState<Suit>('hearts');
-  const [partnerRank, setPartnerRank] = useState<Rank>('A');
+
+  // Choose an initial partner card that is not in the player's hand
+  const [partnerSuit, setPartnerSuit] = useState<Suit>(() => {
+    if (!myHand.some((c) => c.id === 'spades-Q')) return 'spades';
+    for (const s of ['hearts', 'diamonds', 'clubs', 'spades'] as Suit[]) {
+      if (!myHand.some((c) => c.suit === s && c.rank === 'A')) return s;
+    }
+    return 'hearts';
+  });
+
+  const [partnerRank, setPartnerRank] = useState<Rank>(() => {
+    if (!myHand.some((c) => c.id === 'spades-Q')) return 'Q';
+    for (const s of ['hearts', 'diamonds', 'clubs', 'spades'] as Suit[]) {
+      if (!myHand.some((c) => c.suit === s && c.rank === 'A')) return 'A';
+    }
+    return 'K';
+  });
 
   const calledCardId = `${partnerSuit}-${partnerRank}`;
   const calledCard: Card = {
@@ -45,9 +60,10 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
   const twosOrder = ['clubs-2', 'diamonds-2', 'hearts-2', 'spades-2'];
   const removedCardIds = new Set(twosOrder.slice(0, remainder));
   const isCardRemoved = removedCardIds.has(calledCardId);
+  const isCardInMyHand = myHand.some((c) => c.id === calledCardId);
 
   const handleConfirm = () => {
-    if (isCardRemoved) return;
+    if (isCardRemoved || isCardInMyHand) return;
     sounds.playTrump();
     onConfirm(selectedSuit, calledCard);
   };
@@ -158,7 +174,19 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col md:flex-row items-center gap-6">
             {/* Left Card Preview */}
             <div className="flex flex-col items-center">
-              <CardView card={calledCard} isPlayable={false} size="md" />
+              <div className="relative">
+                <CardView card={calledCard} isPlayable={false} size="md" />
+                {isCardInMyHand && (
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg uppercase font-mono whitespace-nowrap">
+                    In Your Hand
+                  </span>
+                )}
+                {isCardRemoved && !isCardInMyHand && (
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg uppercase font-mono whitespace-nowrap">
+                    Removed
+                  </span>
+                )}
+              </div>
               <span className="text-xs font-mono text-zinc-400 mt-2">Called Card</span>
             </div>
 
@@ -178,7 +206,7 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
                       className={`py-1.5 rounded-lg border text-xs font-bold transition-all ${
                         partnerSuit === suit
                           ? 'bg-white text-black border-white'
-                          : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                          : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white'
                       }`}
                     >
                       {SUIT_SYMBOLS[suit]} {suit.slice(0, 4)}
@@ -189,24 +217,43 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
 
               {/* Rank Selector */}
               <div>
-                <span className="text-[11px] uppercase font-mono text-zinc-400 block mb-1">Partner Card Rank:</span>
+                <span className="text-[11px] uppercase font-mono text-zinc-400 block mb-1">
+                  Partner Card Rank (cards in your hand cannot be chosen):
+                </span>
                 <div className="grid grid-cols-7 sm:grid-cols-7 gap-1">
-                  {RANKS.map((rank) => (
-                    <button
-                      key={rank}
-                      onClick={() => {
-                        sounds.playClick();
-                        setPartnerRank(rank);
-                      }}
-                      className={`py-1.5 rounded-lg border text-xs font-bold font-mono transition-all ${
-                        partnerRank === rank
-                          ? 'bg-white text-black border-white'
-                          : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700'
-                      }`}
-                    >
-                      {rank}
-                    </button>
-                  ))}
+                  {RANKS.map((rank) => {
+                    const cardId = `${partnerSuit}-${rank}`;
+                    const inHand = myHand.some((c) => c.id === cardId);
+                    const isRemoved = removedCardIds.has(cardId);
+
+                    return (
+                      <button
+                        key={rank}
+                        onClick={() => {
+                          sounds.playClick();
+                          setPartnerRank(rank);
+                        }}
+                        className={`py-1.5 rounded-lg border text-xs font-bold font-mono transition-all relative ${
+                          partnerRank === rank
+                            ? 'bg-white text-black border-white'
+                            : inHand
+                            ? 'bg-zinc-950 text-zinc-600 border-zinc-900 line-through'
+                            : isRemoved
+                            ? 'bg-zinc-950 text-zinc-700 border-zinc-900 opacity-40 line-through'
+                            : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white'
+                        }`}
+                        title={
+                          inHand
+                            ? `${rank} of ${partnerSuit} is in your hand (cannot be chosen)`
+                            : isRemoved
+                            ? `${rank} of ${partnerSuit} was removed from deck`
+                            : undefined
+                        }
+                      >
+                        {rank}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -217,7 +264,7 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs uppercase font-mono text-zinc-400">
-              Your Hand (You hold these {myHand.length} cards):
+              Your Hand (You hold these {myHand.length} cards — cannot be chosen as partner):
             </span>
             {onToggleHideCards && (
               <button
@@ -239,15 +286,24 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
             )}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-1.5 overflow-x-auto py-1">
-            {myHand.map((card) => (
-              <CardView
-                key={card.id}
-                card={card}
-                isFaceDown={isCardsHidden}
-                isPlayable={false}
-                size="sm"
-              />
-            ))}
+            {myHand.map((card) => {
+              const isSelectedInHand = card.id === calledCardId;
+              return (
+                <div key={card.id} className="relative">
+                  <CardView
+                    card={card}
+                    isFaceDown={isCardsHidden}
+                    isPlayable={false}
+                    size="sm"
+                  />
+                  {isSelectedInHand && (
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-rose-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full shadow uppercase font-mono whitespace-nowrap">
+                      In Hand
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -257,6 +313,10 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
             <div className="text-xs text-rose-400 font-mono">
               ⚠️ {calledCard.rank} of {calledCard.suit} was removed from the deck to distribute cards evenly among {totalPlayers} players. Please pick another card.
             </div>
+          ) : isCardInMyHand ? (
+            <div className="text-xs text-rose-400 font-mono">
+              ⚠️ You hold {calledCard.rank} of {calledCard.suit} in your hand! You cannot choose your own card as your partner.
+            </div>
           ) : (
             <div className="text-xs text-zinc-500 font-mono">
               The player holding this card will be your secret teammate.
@@ -264,7 +324,7 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
           )}
           <button
             onClick={handleConfirm}
-            disabled={isCardRemoved}
+            disabled={isCardRemoved || isCardInMyHand}
             className="w-full sm:w-auto px-8 py-3 bg-white text-black font-extrabold rounded-xl hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm flex items-center justify-center space-x-2 shadow-xl hover:scale-[1.01]"
           >
             <Check className="w-4 h-4" />

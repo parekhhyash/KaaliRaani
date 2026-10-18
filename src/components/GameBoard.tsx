@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { RoomState, Card, Player } from '@/types/game';
 import { CardView } from './CardView';
 import { SUIT_SYMBOLS } from '@/lib/constants';
-import { isLegalPlay } from '@/lib/deck';
+import { isLegalPlay, evaluateTrick } from '@/lib/deck';
 import { sounds } from '@/lib/audio';
 import { Crown, UserCheck, Bot, Sparkles, MessageSquare, Eye, EyeOff } from 'lucide-react';
 
@@ -217,44 +217,62 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           {currentTrick.cards.length > 0 && (
             <div className="flex flex-col items-center z-10 w-full px-2">
               <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 w-full">
-                {currentTrick.cards.map((play, idx) => {
-                  const isLead = idx === 0;
-                  const isMe = play.playerId === me.id;
-                  const isWinner = play.playerId === currentTrick.winnerPlayerId;
-                  return (
-                    <div
-                      key={play.playerId}
-                      className={`flex flex-col items-center animate-in zoom-in-95 duration-150 transition-all ${
-                        isWinner ? 'scale-105' : ''
-                      }`}
-                    >
-                      <div className={`relative rounded-xl ${isWinner ? 'ring-2 ring-white shadow-2xl shadow-white/30' : ''}`}>
-                        <CardView card={play.card} size="sm" isPlayable={false} />
-                        {isLead && !isWinner && (
-                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-black px-1.5 py-0.2 rounded shadow uppercase font-mono">
-                            Lead
-                          </span>
-                        )}
-                        {isWinner && (
-                          <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-lg uppercase font-mono flex items-center gap-0.5 whitespace-nowrap">
-                            👑 Won
-                          </span>
-                        )}
-                      </div>
-                      <span
-                        className={`text-[10px] sm:text-xs font-mono mt-1 px-1.5 py-0.5 rounded truncate max-w-[80px] sm:max-w-[100px] text-center ${
-                          isWinner
-                            ? 'bg-white text-black font-extrabold'
-                            : isMe
-                            ? 'bg-zinc-800 text-white font-bold'
-                            : 'text-zinc-300 bg-zinc-900/90 border border-zinc-800'
+                {(() => {
+                  const currentLeaderCardId =
+                    currentTrick.cards.length > 0 && !currentTrick.winnerPlayerId
+                      ? evaluateTrick(currentTrick.cards, trumpSuit).winningPlay.card.id
+                      : undefined;
+
+                  return currentTrick.cards.map((play) => {
+                    const isMe = play.playerId === me.id;
+                    const isWinner = play.playerId === currentTrick.winnerPlayerId;
+                    const isCurrentHighest = !currentTrick.winnerPlayerId && play.card.id === currentLeaderCardId;
+
+                    return (
+                      <div
+                        key={play.playerId}
+                        className={`flex flex-col items-center animate-in zoom-in-95 duration-150 transition-all ${
+                          isWinner ? 'scale-105' : isCurrentHighest ? 'scale-[1.03]' : ''
                         }`}
                       >
-                        {isMe ? 'You' : play.playerUsername}
-                      </span>
-                    </div>
-                  );
-                })}
+                        <div
+                          className={`relative rounded-xl transition-all ${
+                            isWinner
+                              ? 'ring-2 ring-white shadow-2xl shadow-white/30'
+                              : isCurrentHighest
+                              ? 'ring-1.5 ring-white/80 shadow-lg shadow-white/10'
+                              : ''
+                          }`}
+                        >
+                          <CardView card={play.card} size="sm" isPlayable={false} />
+                          {isWinner && (
+                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-lg uppercase font-mono flex items-center gap-0.5 whitespace-nowrap">
+                              👑 Won
+                            </span>
+                          )}
+                          {isCurrentHighest && (
+                            <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-white text-black text-[8px] sm:text-[9px] font-black px-1.5 py-0.2 rounded-full shadow-md uppercase font-mono flex items-center gap-0.5 whitespace-nowrap animate-in fade-in">
+                              ▲ High
+                            </span>
+                          )}
+                        </div>
+                        <span
+                          className={`text-[10px] sm:text-xs font-mono mt-1 px-1.5 py-0.5 rounded truncate max-w-[80px] sm:max-w-[100px] text-center ${
+                            isWinner
+                              ? 'bg-white text-black font-extrabold'
+                              : isCurrentHighest
+                              ? 'bg-zinc-800 text-white font-bold border border-zinc-600'
+                              : isMe
+                              ? 'bg-zinc-800 text-white font-bold'
+                              : 'text-zinc-300 bg-zinc-900/90 border border-zinc-800'
+                          }`}
+                        >
+                          {isMe ? 'You' : play.playerUsername}
+                        </span>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
 
               {/* Winner Announcement Banner during pause */}
