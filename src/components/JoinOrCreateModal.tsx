@@ -65,7 +65,7 @@ export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto p-4 sm:p-6 text-white">
+    <div className="w-full max-w-lg mx-auto p-4 sm:p-6 text-white relative z-10">
       {/* Branding Hero */}
       <div className="text-center mb-8">
         <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-700 flex items-center justify-center mx-auto mb-4 text-3xl font-black text-white shadow-2xl">

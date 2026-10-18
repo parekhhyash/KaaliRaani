@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { RoomState, Suit, Card, GameSettings } from '@/types/game';
 import { PeerGameManager, PeerStatus } from '@/lib/p2p/peerManager';
@@ -262,16 +263,37 @@ function KaaliRaaniGame() {
 
         {/* 1. LANDING: CREATE OR JOIN ROOM */}
         {!roomState ? (
-          <JoinOrCreateModal
-            initialRoomCode={initialRoomFromUrl}
-            hasPreviousSession={!!savedSession}
-            previousRoomCode={savedSession?.roomCode}
-            previousUsername={savedSession?.username}
-            onCreateRoom={handleCreateRoom}
-            onJoinRoom={handleJoinRoom}
-            onResumeSession={handleResumeSession}
-            onOpenRules={() => setIsRulesOpen(true)}
-          />
+          <>
+            <JoinOrCreateModal
+              initialRoomCode={initialRoomFromUrl}
+              hasPreviousSession={!!savedSession}
+              previousRoomCode={savedSession?.roomCode}
+              previousUsername={savedSession?.username}
+              onCreateRoom={handleCreateRoom}
+              onJoinRoom={handleJoinRoom}
+              onResumeSession={handleResumeSession}
+              onOpenRules={() => setIsRulesOpen(true)}
+            />
+
+            {/* Bottom-right Kaali Raani Artwork */}
+            <div
+              className="fixed bottom-0 right-0 z-0 pointer-events-none select-none max-w-[220px] sm:max-w-[280px] md:max-w-[340px] lg:max-w-[400px] xl:max-w-[450px] opacity-40 sm:opacity-60 md:opacity-80 lg:opacity-90 transition-opacity duration-500"
+              aria-hidden="true"
+            >
+              <Image
+                src="/black-queen.jpg"
+                alt="Kaali Raani - Black Queen"
+                width={450}
+                height={600}
+                priority
+                className="w-full h-auto object-contain"
+                style={{
+                  maskImage: 'radial-gradient(ellipse at 80% 80%, rgba(0,0,0,1) 45%, rgba(0,0,0,0.4) 75%, transparent 100%)',
+                  WebkitMaskImage: 'radial-gradient(ellipse at 80% 80%, rgba(0,0,0,1) 45%, rgba(0,0,0,0.4) 75%, transparent 100%)',
+                }}
+              />
+            </div>
+          </>
         ) : (
           <>
             {/* 2. LOBBY */}
@@ -396,7 +418,7 @@ function KaaliRaaniGame() {
       />
 
       {/* Footer */}
-      <footer className="w-full border-t border-zinc-900 py-3.5 px-4 text-center text-xs text-zinc-500 font-mono flex items-center justify-center">
+      <footer className="w-full border-t border-zinc-900 py-3.5 px-4 text-center text-xs text-zinc-500 font-mono flex items-center justify-center relative z-10 bg-black/60 backdrop-blur-sm">
         <span>
           Made with ❤️ by{' '}
           <a
