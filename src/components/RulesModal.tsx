@@ -114,7 +114,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                 <strong className="text-white">Once a player passes, they cannot bid again</strong> in that round.
               </li>
               <li>
-                When all other 3 players have passed, the highest bidder wins the auction and becomes the{' '}
+                When all other players have passed, the highest bidder wins the auction and becomes the{' '}
                 <strong className="text-white">Declarer</strong>!
               </li>
             </ul>
@@ -152,7 +152,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
               4. Playing the Game
             </h3>
             <ul className="list-disc pl-5 space-y-1.5 text-zinc-300">
-              <li>The Declarer leads the first trick. 13 tricks are played in total.</li>
+              <li>The Declarer leads the first trick. Tricks are played until all dealt cards in hand are exhausted.</li>
               <li>
                 Players take turns clockwise playing 1 card. You{' '}
                 <strong className="text-white">MUST follow the suit led</strong> if you hold a card of that suit.
@@ -163,7 +163,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                 Trump is played, the highest card of the suit led wins (Rank hierarchy: A &gt; K &gt; Q &gt; J &gt; 10
                 ... &gt; 2).
               </li>
-              <li>The trick winner collects all card points from the 4 cards and leads the next trick.</li>
+              <li>The trick winner collects all card points from the cards played in that trick and leads the next trick.</li>
             </ul>
           </div>
 
@@ -175,7 +175,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
             </h3>
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
               <p className="text-zinc-200">
-                At the end of 13 tricks, the card points collected by the Declarer and their Partner are summed up:
+                At the end of the round (when all tricks are played), the card points collected by the Declarer and their Partner are summed up:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <div className="p-3 bg-black/60 border border-zinc-800 rounded-lg">

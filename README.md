@@ -38,12 +38,12 @@ In Kaali Raani, not all cards have points. Only specific cards carry point value
 
 ### 2. Bidding Phase
 
-1. Each player is dealt **13 cards** from a standard 52-card deck.
+1. Cards are dealt evenly among the players (supporting 4 to 6 players).
 2. Bidding begins at **70 points**.
 3. Players take turns raising the current bid by at least **5 points** (e.g. 70, 75, 80, 85... up to 150).
 4. A player can either **Raise** or **Pass**.
 5. **Once a player passes, they cannot bid again in that round.**
-6. The highest bidder wins the auction and becomes the **Declarer**.
+6. When all other players have passed, the highest bidder wins the auction and becomes the **Declarer**.
 
 ---
 
@@ -59,19 +59,19 @@ After winning the auction, the Declarer:
 
 ### 4. Playing Tricks
 
-1. Declarer leads the first of 13 tricks.
+1. Declarer leads the first trick. Tricks continue until all dealt cards in hand are exhausted.
 2. **Follow Suit Rule**: Players **must** follow the lead suit if they hold any card of that suit.
 3. If a player does not have any cards of the lead suit, they may play **any card**, including a Trump card.
 4. **Trick Evaluation**:
    - The highest Trump card played wins the trick.
    - If no Trump was played, the highest card of the lead suit wins (A > K > Q > J > 10 > ... > 2).
-5. The winner collects the 4 cards and all points contained within them, then leads the next trick.
+5. The winner collects the played cards and all points contained within them, then leads the next trick.
 
 ---
 
 ### 5. Scoring & Match Leaderboard
 
-At the end of 13 tricks, card points collected by the Declarer and Partner are totaled:
+At the end of the round (once all tricks are played), card points collected by the Declarer and Partner are totaled:
 - **If Declarer Team ≥ Bid Amount**:
   - The bidding team wins! Declarer and Partner **each receive match points equal to the bid amount**.
   - Opposition players receive **0 points**.
