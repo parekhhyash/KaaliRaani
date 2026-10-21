@@ -148,9 +148,27 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       </div>
                     </div>
                     <div className="text-right font-mono">
-                      <div className="text-white font-bold text-sm">+{res.pointsAwarded} pts</div>
-                      <div className="text-[10px] text-zinc-500">
-                        to {res.biddingTeamWon ? 'Declarer Team' : 'Opposition'}
+                      <div className="text-white font-bold text-sm">
+                        {res.biddingTeamWon ? `+${res.bidAmount} pts` : `+${res.bidAmount} pts`}
+                      </div>
+                      <div className="text-[10px] text-zinc-400 mt-0.5">
+                        {res.biddingTeamWon ? (
+                          <span>
+                            Bidders +{res.bidAmount}
+                            {(res.oppositionTeamDelta ?? -(res.declarerTeamPoints - res.bidAmount)) < 0 && (
+                              <span className="text-rose-400 ml-1">
+                                (Def {res.oppositionTeamDelta ?? -(res.declarerTeamPoints - res.bidAmount)})
+                              </span>
+                            )}
+                          </span>
+                        ) : (
+                          <span>
+                            Def +{res.bidAmount}
+                            <span className="text-rose-400 ml-1">
+                              (Bidders {res.declarerTeamDelta ?? -(res.bidAmount - res.declarerTeamPoints)})
+                            </span>
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

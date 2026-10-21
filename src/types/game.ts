@@ -78,6 +78,8 @@ export interface RoundResult {
   oppositionTeamPoints: number;
   biddingTeamWon: boolean;
   pointsAwarded: number; // equal to bidAmount
+  declarerTeamDelta?: number; // points change for declarer team members
+  oppositionTeamDelta?: number; // points change for opposition team members
   scoresAfterRound: { [playerId: string]: number };
 }
 

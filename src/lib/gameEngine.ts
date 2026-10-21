@@ -711,25 +711,25 @@ export function finalizeRound(state: RoomState): RoomState {
   const biddingTeamWon = declarerTeamPoints >= state.highestBid;
   const bidAmount = state.highestBid;
 
-  // Award round points:
-  // "if the bidding team wins, then they get the point equal to the amount of the bid.
-  //  If the opposition wins, they get the points equal to the amount of the bid of the bidder, otherwise zero."
+  // Scoring rules:
+  // - If bidders win: bidders gain +bidAmount. Defenders failed to defend by (declarerTeamPoints - bidAmount), so subtract that from each defender's score.
+  // - If defenders win (bidders lose): defenders gain +bidAmount. Bidders failed to win by (bidAmount - declarerTeamPoints), so subtract that from each bidder's score.
+  let declarerTeamDelta = 0;
+  let oppositionTeamDelta = 0;
+
+  if (biddingTeamWon) {
+    declarerTeamDelta = bidAmount;
+    oppositionTeamDelta = -(declarerTeamPoints - bidAmount);
+  } else {
+    declarerTeamDelta = -(bidAmount - declarerTeamPoints);
+    oppositionTeamDelta = bidAmount;
+  }
+
   const scoresAfterRound: Record<string, number> = {};
 
   const updatedPlayers = state.players.map((p) => {
     const isDeclarerTeam = p.id === declarerId || p.id === partnerId;
-    let addedMatchPoints = 0;
-
-    if (biddingTeamWon) {
-      if (isDeclarerTeam) {
-        addedMatchPoints = bidAmount;
-      }
-    } else {
-      if (!isDeclarerTeam) {
-        addedMatchPoints = bidAmount;
-      }
-    }
-
+    const addedMatchPoints = isDeclarerTeam ? declarerTeamDelta : oppositionTeamDelta;
     const newMatchScore = p.matchScore + addedMatchPoints;
     scoresAfterRound[p.id] = newMatchScore;
 
@@ -753,22 +753,27 @@ export function finalizeRound(state: RoomState): RoomState {
     oppositionTeamPoints,
     biddingTeamWon,
     pointsAwarded: bidAmount,
+    declarerTeamDelta,
+    oppositionTeamDelta,
     scoresAfterRound,
   };
 
   const logs = [...state.actionLogs];
   if (biddingTeamWon) {
+    const defenseFailedMargin = declarerTeamPoints - bidAmount;
+    const penaltyText = defenseFailedMargin > 0 ? ` Opposition failed by ${defenseFailedMargin} pts (-${defenseFailedMargin} pts each).` : '';
     logs.push({
       id: `log-${Date.now()}-res`,
       timestamp: Date.now(),
-      text: `🎉 BID SUCCESS! Declarer team made ${declarerTeamPoints}/${bidAmount} points! Declarer and Partner each receive +${bidAmount} match points!`,
+      text: `🎉 BID SUCCESS! Declarer team made ${declarerTeamPoints}/${bidAmount} points (+${bidAmount} pts each)!${penaltyText}`,
       type: 'round',
     });
   } else {
+    const bidFailedMargin = bidAmount - declarerTeamPoints;
     logs.push({
       id: `log-${Date.now()}-res`,
       timestamp: Date.now(),
-      text: `🛡️ DEFENSE WON! Declarer team scored only ${declarerTeamPoints}/${bidAmount} points! Opposition members each receive +${bidAmount} match points!`,
+      text: `🛡️ DEFENSE WON! Declarer team scored ${declarerTeamPoints}/${bidAmount} points (fell short by ${bidFailedMargin} pts, -${bidFailedMargin} pts each). Opposition members receive +${bidAmount} match points!`,
       type: 'round',
     });
   }

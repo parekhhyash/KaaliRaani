@@ -182,16 +182,18 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                   <h4 className="font-bold text-white mb-1">If Declarer Team Reaches Bid Target:</h4>
                   <p className="text-xs text-zinc-300">
                     The bidding team wins! Declarer and Partner{' '}
-                    <strong className="text-white">each receive points equal to the bid amount</strong>. Opposition
-                    players receive <strong className="text-white">0 points</strong>.
+                    <strong className="text-white">each receive +points equal to the bid amount</strong>.
+                    Defenders failed to defend: the points by which they fell short of defending are{' '}
+                    <strong className="text-rose-400">subtracted from each defending player&apos;s score</strong>.
                   </p>
                 </div>
                 <div className="p-3 bg-black/60 border border-zinc-800 rounded-lg">
                   <h4 className="font-bold text-white mb-1">If Declarer Team Fails Target:</h4>
                   <p className="text-xs text-zinc-300">
                     The opposition wins! Each opposition player{' '}
-                    <strong className="text-white">receives points equal to the bid amount</strong>. Declarer and
-                    Partner receive <strong className="text-white">0 points</strong>.
+                    <strong className="text-white">receives +points equal to the bid amount</strong>.
+                    Bidders failed to win: the points by which they fell short of their bid are{' '}
+                    <strong className="text-rose-400">subtracted from Declarer and Partner&apos;s score</strong>.
                   </p>
                 </div>
               </div>

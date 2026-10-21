@@ -32,7 +32,23 @@ export const RoundEndModal: React.FC<RoundEndModalProps> = ({
     oppositionTeamPoints,
     biddingTeamWon,
     pointsAwarded,
+    declarerTeamDelta: roundDeclarerDelta,
+    oppositionTeamDelta: roundOppositionDelta,
   } = roundResult;
+
+  const declarerDelta =
+    roundDeclarerDelta !== undefined
+      ? roundDeclarerDelta
+      : biddingTeamWon
+      ? pointsAwarded
+      : -(bidAmount - declarerTeamPoints);
+
+  const oppositionDelta =
+    roundOppositionDelta !== undefined
+      ? roundOppositionDelta
+      : !biddingTeamWon
+      ? pointsAwarded
+      : -(Math.max(0, declarerTeamPoints - bidAmount));
 
   const sortedPlayers = [...players].sort((a, b) => b.matchScore - a.matchScore);
 
@@ -56,6 +72,16 @@ export const RoundEndModal: React.FC<RoundEndModalProps> = ({
           <p className="text-xs sm:text-sm text-zinc-400 mt-1">
             Target was <strong className="text-white font-mono">{bidAmount} points</strong>. Declarer team scored{' '}
             <strong className="text-white font-mono">{declarerTeamPoints} points</strong>.
+            {biddingTeamWon && declarerTeamPoints > bidAmount && (
+              <span className="text-rose-400 ml-1">
+                (Opposition failed to defend by {declarerTeamPoints - bidAmount} pts)
+              </span>
+            )}
+            {!biddingTeamWon && (
+              <span className="text-rose-400 ml-1">
+                (Declarer team fell short by {bidAmount - declarerTeamPoints} pts)
+              </span>
+            )}
           </p>
         </div>
 
@@ -93,9 +119,21 @@ export const RoundEndModal: React.FC<RoundEndModalProps> = ({
               </div>
 
               <div className="mt-3 pt-2 border-t border-zinc-800 font-mono text-xs flex justify-between">
-                <span className="text-zinc-400">Match Points Awarded:</span>
-                <strong className={biddingTeamWon ? 'text-white' : 'text-zinc-500'}>
-                  {biddingTeamWon ? `+${pointsAwarded} pts each` : '0 pts'}
+                <span className="text-zinc-400">Match Points:</span>
+                <strong
+                  className={
+                    declarerDelta > 0
+                      ? 'text-white'
+                      : declarerDelta < 0
+                      ? 'text-rose-400'
+                      : 'text-zinc-400'
+                  }
+                >
+                  {declarerDelta > 0
+                    ? `+${declarerDelta} pts each`
+                    : declarerDelta < 0
+                    ? `${declarerDelta} pts each (subtracted)`
+                    : '0 pts'}
                 </strong>
               </div>
             </div>
@@ -124,9 +162,21 @@ export const RoundEndModal: React.FC<RoundEndModalProps> = ({
               </div>
 
               <div className="mt-3 pt-2 border-t border-zinc-800 font-mono text-xs flex justify-between">
-                <span className="text-zinc-400">Match Points Awarded:</span>
-                <strong className={!biddingTeamWon ? 'text-white' : 'text-zinc-500'}>
-                  {!biddingTeamWon ? `+${pointsAwarded} pts each` : '0 pts'}
+                <span className="text-zinc-400">Match Points:</span>
+                <strong
+                  className={
+                    oppositionDelta > 0
+                      ? 'text-white'
+                      : oppositionDelta < 0
+                      ? 'text-rose-400'
+                      : 'text-zinc-400'
+                  }
+                >
+                  {oppositionDelta > 0
+                    ? `+${oppositionDelta} pts each`
+                    : oppositionDelta < 0
+                    ? `${oppositionDelta} pts each (subtracted)`
+                    : '0 pts'}
                 </strong>
               </div>
             </div>
