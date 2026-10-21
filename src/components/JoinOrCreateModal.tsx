@@ -9,6 +9,7 @@ interface JoinOrCreateModalProps {
   hasPreviousSession?: boolean;
   previousRoomCode?: string;
   previousUsername?: string;
+  connectionError?: string;
   onCreateRoom: (username: string, totalRounds: number) => void;
   onJoinRoom: (roomCode: string, username: string) => void;
   onResumeSession: () => void;
@@ -20,6 +21,7 @@ export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
   hasPreviousSession = false,
   previousRoomCode = '',
   previousUsername = '',
+  connectionError,
   onCreateRoom,
   onJoinRoom,
   onResumeSession,
@@ -130,9 +132,9 @@ export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
           </button>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs text-center font-medium">
-            {error}
+        {(connectionError || error) && (
+          <div className="mb-4 p-3 rounded-xl bg-rose-950/80 border border-rose-700 text-rose-300 text-xs text-center font-medium font-mono animate-in fade-in">
+            {error || connectionError}
           </div>
         )}
 

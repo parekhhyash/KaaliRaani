@@ -34,7 +34,7 @@ export const CardView: React.FC<CardViewProps> = ({
     return (
       <div
         onClick={onClick}
-        className={`${sizeClasses} bg-zinc-950 border border-zinc-700/80 rounded-xl flex items-center justify-center relative overflow-hidden shadow-md select-none transition-all duration-150 ${
+        className={`${sizeClasses} flex-shrink-0 bg-zinc-950 border border-zinc-700/80 rounded-xl flex items-center justify-center relative overflow-hidden shadow-md select-none transition-all duration-150 ${
           onClick ? 'cursor-pointer hover:border-zinc-500' : ''
         } ${className}`}
       >
@@ -62,7 +62,7 @@ export const CardView: React.FC<CardViewProps> = ({
     <div
       onClick={isPlayable && onClick ? onClick : undefined}
       className={`
-        ${sizeClasses}
+        ${sizeClasses} flex-shrink-0
         relative select-none rounded-xl transition-all duration-150 flex flex-col justify-between
         ${isKaaliRaani ? 'bg-gradient-to-b from-zinc-900 to-black border-2 border-white' : 'bg-zinc-900 border border-zinc-700'}
         ${isPlayable ? 'cursor-pointer hover:-translate-y-2 hover:border-white hover:shadow-xl hover:shadow-white/10' : 'opacity-40 cursor-not-allowed'}

@@ -61,24 +61,36 @@ export function createInitialRoomState(
 }
 
 export function addPlayerToRoom(state: RoomState, playerInfo: { id: string; username: string }): RoomState {
+  const normalizedIncomingName = playerInfo.username.trim().toLowerCase();
+
+  // Check if a player with this username already exists in the room
+  const existingPlayer = state.players.find(
+    (p) => p.username.trim().toLowerCase() === normalizedIncomingName
+  );
+
+  if (existingPlayer) {
+    // If the existing player is currently connected and has a different ID, reject duplicate name
+    if (existingPlayer.isConnected && existingPlayer.id !== playerInfo.id) {
+      throw new Error(`A player named "${existingPlayer.username}" is already connected in this room.`);
+    }
+
+    // In lobby, duplicate usernames are not allowed if already in the room with different connection
+    if (state.phase === 'lobby' && existingPlayer.id !== playerInfo.id) {
+      throw new Error(`A player named "${existingPlayer.username}" is already connected in this room.`);
+    }
+
+    // If game has already started and the player was disconnected (or reconnecting), allow them to resume their seat
+    return reconnectPlayer(state, playerInfo.username, playerInfo.id);
+  }
+
   const maxAllowed = MAX_PLAYERS;
   if (state.players.length >= maxAllowed) {
-    // Check if player is rejoining with same username
-    const existing = state.players.find(
-      (p) => p.username.trim().toLowerCase() === playerInfo.username.trim().toLowerCase()
-    );
-    if (existing) {
-      return reconnectPlayer(state, playerInfo.username, playerInfo.id);
-    }
     throw new Error('Room is already full');
   }
 
-  // Check duplicate username
-  const existingSameName = state.players.find(
-    (p) => p.username.trim().toLowerCase() === playerInfo.username.trim().toLowerCase()
-  );
-  if (existingSameName) {
-    return reconnectPlayer(state, playerInfo.username, playerInfo.id);
+  // Cannot join mid-game as a new player
+  if (state.phase !== 'lobby') {
+    throw new Error('Game is already in progress. Cannot join as a new player.');
   }
 
   const newPlayer: Player = {

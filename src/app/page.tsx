@@ -129,6 +129,9 @@ function KaaliRaaniGame() {
   };
 
   const handleCreateRoom = async (username: string, totalRounds: number) => {
+    setPeerStatus('connecting');
+    setStatusMessage('');
+
     // Generate clean 6-character room code
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = 'KQ';
@@ -145,6 +148,9 @@ function KaaliRaaniGame() {
   };
 
   const handleJoinRoom = async (roomCode: string, username: string) => {
+    setPeerStatus('connecting');
+    setStatusMessage('');
+
     const cleanCode = roomCode.toUpperCase().trim();
     const session: SavedSession = { roomCode: cleanCode, username, isHost: false };
     localStorage.setItem('kaali_raani_session', JSON.stringify(session));
@@ -258,9 +264,7 @@ function KaaliRaaniGame() {
         roomCode={roomState?.roomCode || ''}
         currentRound={roomState?.currentRound || 0}
         totalRounds={roomState?.totalRounds || 3}
-        isCardsHidden={isCardsHidden}
         isInRoom={Boolean(roomState)}
-        onToggleHideCards={handleToggleHideCards}
         onOpenRules={() => setIsRulesOpen(true)}
         onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
       />
@@ -282,6 +286,7 @@ function KaaliRaaniGame() {
               hasPreviousSession={!!savedSession}
               previousRoomCode={savedSession?.roomCode}
               previousUsername={savedSession?.username}
+              connectionError={peerStatus === 'error' ? statusMessage : undefined}
               onCreateRoom={handleCreateRoom}
               onJoinRoom={handleJoinRoom}
               onResumeSession={handleResumeSession}

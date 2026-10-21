@@ -326,9 +326,21 @@ export class PeerGameManager {
             username: message.username,
           });
           this.broadcastState(updated);
-        } catch {
-          // If room full, send state anyway so user can see spectator / error
-          conn.send({ type: 'SYNC_STATE', state: this.currentState });
+        } catch (err: any) {
+          const errMsg = err?.message || `A player named "${message.username}" is already connected in this room.`;
+          try {
+            conn.send({
+              type: 'JOIN_ERROR',
+              message: errMsg,
+            });
+            setTimeout(() => {
+              try {
+                conn.close();
+              } catch {}
+            }, 800);
+          } catch (e) {
+            console.warn('Failed to send JOIN_ERROR to client:', e);
+          }
         }
         break;
       }
@@ -377,7 +389,17 @@ export class PeerGameManager {
    * Client receives updates from Host
    */
   private handleClientReceivedData(data: any) {
-    if (data.type === 'SYNC_STATE') {
+    if (data.type === 'JOIN_ERROR') {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('kaali_raani_session');
+          localStorage.removeItem(`kr_state_${this.roomCode}`);
+        } catch {}
+      }
+      this.notifyStatus('error', data.message);
+      this.destroy();
+      return;
+    } else if (data.type === 'SYNC_STATE') {
       this.updateState(data.state);
     } else if (data.type === 'CHAT_MESSAGE') {
       this.onChatMessageCallbacks.forEach((cb) => cb(data));

@@ -40,7 +40,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   } = state;
 
   const [showLogs, setShowLogs] = useState(false);
-  const [peekCardId, setPeekCardId] = useState<string | null>(null);
 
   const me = players.find((p) => p.id === myPlayerId) || players[0];
   const isMyTurn = currentTurnPlayerId === myPlayerId;
@@ -61,18 +60,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   }, [currentTrick.winnerPlayerId, currentTrick.trickNumber]);
 
   const handleCardClick = (card: Card) => {
+    // If cards are hidden, clicking any hidden card reveals all cards in hand
     if (isCardsHidden) {
-      if (peekCardId !== card.id) {
-        sounds.playClick();
-        setPeekCardId(card.id);
-        return;
+      sounds.playClick();
+      if (onToggleHideCards) {
+        onToggleHideCards();
       }
+      return;
     }
 
     if (!isMyTurn) return;
     if (isLegalPlay(card, me.hand, currentTrick.leadSuit)) {
       sounds.playCardPlay();
-      setPeekCardId(null);
       onPlayCard(card.id);
     }
   };
@@ -397,28 +396,29 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
           {/* Helper when hidden */}
           {isCardsHidden && (
-            <div className="text-[11px] text-zinc-500 font-mono mb-2 flex items-center gap-1.5">
-              <span>🔒 Cards hidden for privacy. Click a card to peek, or toggle 'Show Cards'.</span>
+            <div className="text-[11px] text-zinc-400 font-mono mb-2 flex items-center gap-1.5">
+              <span>🔒 Cards hidden for privacy. Click any card to reveal your hand.</span>
             </div>
           )}
 
           {/* Fan / Horizontally Scrollable Hand of Cards */}
-          <div className="w-full flex items-center justify-center gap-1 sm:gap-2 overflow-x-auto py-2 px-1">
-            {me.hand.map((card) => {
-              const legal = isLegalPlay(card, me.hand, currentTrick.leadSuit);
-              const isHidden = isCardsHidden && peekCardId !== card.id;
+          <div className="w-full overflow-x-auto py-2 px-1 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent touch-pan-x">
+            <div className="flex items-center gap-1 sm:gap-2 min-w-max mx-auto px-2">
+              {me.hand.map((card) => {
+                const legal = isLegalPlay(card, me.hand, currentTrick.leadSuit);
 
-              return (
-                <CardView
-                  key={card.id}
-                  card={card}
-                  isFaceDown={isHidden}
-                  isPlayable={isMyTurn && legal}
-                  onClick={() => handleCardClick(card)}
-                  size="md"
-                />
-              );
-            })}
+                return (
+                  <CardView
+                    key={card.id}
+                    card={card}
+                    isFaceDown={isCardsHidden}
+                    isPlayable={isMyTurn && legal}
+                    onClick={() => handleCardClick(card)}
+                    size="md"
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

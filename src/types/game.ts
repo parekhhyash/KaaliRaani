@@ -135,6 +135,7 @@ export interface RoomState {
 
 export type P2PMessage =
   | { type: 'JOIN_REQUEST'; username: string; playerId: string; isHost: boolean }
+  | { type: 'JOIN_ERROR'; message: string }
   | { type: 'SYNC_STATE'; state: RoomState }
   | { type: 'PLAYER_RECONNECT'; username: string; playerId: string }
   | { type: 'START_GAME' }

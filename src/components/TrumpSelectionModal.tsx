@@ -110,7 +110,15 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
                 key={card.id}
                 card={card}
                 isFaceDown={isCardsHidden}
-                isPlayable={false}
+                isPlayable={isCardsHidden}
+                onClick={
+                  isCardsHidden && onToggleHideCards
+                    ? () => {
+                        sounds.playClick();
+                        onToggleHideCards();
+                      }
+                    : undefined
+                }
                 size="sm"
               />
             ))}
@@ -293,7 +301,15 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
                   <CardView
                     card={card}
                     isFaceDown={isCardsHidden}
-                    isPlayable={false}
+                    isPlayable={isCardsHidden}
+                    onClick={
+                      isCardsHidden && onToggleHideCards
+                        ? () => {
+                            sounds.playClick();
+                            onToggleHideCards();
+                          }
+                        : undefined
+                    }
                     size="sm"
                   />
                   {isSelectedInHand && (

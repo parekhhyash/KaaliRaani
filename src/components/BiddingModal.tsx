@@ -237,7 +237,15 @@ export const BiddingModal: React.FC<BiddingModalProps> = ({
               key={card.id}
               card={card}
               isFaceDown={isCardsHidden}
-              isPlayable={false}
+              isPlayable={isCardsHidden}
+              onClick={
+                isCardsHidden && onToggleHideCards
+                  ? () => {
+                      sounds.playClick();
+                      onToggleHideCards();
+                    }
+                  : undefined
+              }
               size="sm"
             />
           ))}

@@ -1,16 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Volume2, VolumeX, Share2, Copy, Check, BookOpen, Trophy, Eye, EyeOff } from 'lucide-react';
+import { Volume2, VolumeX, Share2, Copy, Check, BookOpen, Trophy } from 'lucide-react';
 import { sounds } from '@/lib/audio';
 
 interface NavbarProps {
   roomCode: string;
   currentRound: number;
   totalRounds: number;
-  isCardsHidden?: boolean;
   isInRoom?: boolean;
-  onToggleHideCards?: () => void;
   onOpenRules: () => void;
   onOpenLeaderboard: () => void;
 }
@@ -19,9 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   roomCode,
   currentRound,
   totalRounds,
-  isCardsHidden = false,
   isInRoom = false,
-  onToggleHideCards,
   onOpenRules,
   onOpenLeaderboard,
 }) => {
@@ -142,23 +138,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <BookOpen className="w-4 h-4" />
         </button>
-
-        {onToggleHideCards && (
-          <button
-            onClick={() => {
-              sounds.playClick();
-              onToggleHideCards();
-            }}
-            className={`p-1.5 sm:p-2 rounded-md border transition-all ${
-              isCardsHidden
-                ? 'bg-white text-black border-white shadow'
-                : 'bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-zinc-300 hover:text-white'
-            }`}
-            title={isCardsHidden ? 'Show Hand (Privacy Mode On)' : 'Hide Hand (Privacy Mode)'}
-          >
-            {isCardsHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        )}
 
         <button
           onClick={toggleSound}
