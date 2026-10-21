@@ -203,7 +203,7 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
               {/* Suit Selector */}
               <div>
                 <span className="text-[11px] uppercase font-mono text-zinc-400 block mb-1">Partner Card Suit:</span>
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {SUITS.map((suit) => (
                     <button
                       key={suit}
@@ -211,13 +211,14 @@ export const TrumpSelectionModal: React.FC<TrumpSelectionModalProps> = ({
                         sounds.playClick();
                         setPartnerSuit(suit);
                       }}
-                      className={`py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                      className={`py-2 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                         partnerSuit === suit
-                          ? 'bg-white text-black border-white'
+                          ? 'bg-white text-black border-white shadow'
                           : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white'
                       }`}
                     >
-                      {SUIT_SYMBOLS[suit]} {suit.slice(0, 4)}
+                      <span className="text-base font-bold">{SUIT_SYMBOLS[suit]}</span>
+                      <span className="capitalize">{suit}</span>
                     </button>
                   ))}
                 </div>

@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Volume2, VolumeX, Share2, Copy, Check, BookOpen, Trophy } from 'lucide-react';
-import { sounds } from '@/lib/audio';
+import { Share2, Copy, Check, BookOpen, Trophy } from 'lucide-react';
 
 interface NavbarProps {
   roomCode: string;
@@ -21,20 +20,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenRules,
   onOpenLeaderboard,
 }) => {
-  const [isMuted, setIsMuted] = useState(sounds.isMuted);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
-
-  const toggleSound = () => {
-    sounds.isMuted = !sounds.isMuted;
-    setIsMuted(sounds.isMuted);
-  };
 
   const copyRoomCode = () => {
     if (!roomCode) return;
     navigator.clipboard.writeText(roomCode);
     setCopiedCode(true);
-    sounds.playClick();
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
@@ -56,7 +48,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     } else {
       navigator.clipboard.writeText(url);
       setCopiedLink(true);
-      sounds.playClick();
       setTimeout(() => setCopiedLink(false), 2000);
     }
   };
@@ -137,14 +128,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           title="Game Rules"
         >
           <BookOpen className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={toggleSound}
-          className="p-1.5 sm:p-2 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition-all"
-          title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-        >
-          {isMuted ? <VolumeX className="w-4 h-4 text-zinc-500" /> : <Volume2 className="w-4 h-4 text-white" />}
         </button>
       </div>
     </header>
