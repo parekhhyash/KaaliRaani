@@ -280,18 +280,6 @@ export const GameLobby: React.FC<GameLobbyProps> = ({
                   : `Start Match (Auto-fills ${4 - totalPlayers} Bot${4 - totalPlayers > 1 ? 's' : ''} to 4)`}
               </span>
             </button>
-            {totalPlayers < maxPlayers && (
-              <button
-                onClick={() => {
-                  sounds.playClick();
-                  onAddBot();
-                }}
-                className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 py-1 px-3 rounded-lg hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add AI Bot ({totalPlayers}/6)</span>
-              </button>
-            )}
           </div>
         ) : (
           <div className="text-center p-4 bg-zinc-950 border border-zinc-800 rounded-xl max-w-md w-full">
