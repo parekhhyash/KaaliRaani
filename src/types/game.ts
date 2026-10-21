@@ -149,4 +149,6 @@ export type P2PMessage =
   | { type: 'ADD_BOT' }
   | { type: 'REMOVE_BOT'; playerId: string }
   | { type: 'UPDATE_SETTINGS'; settings: Partial<GameSettings> }
-  | { type: 'CHAT_MESSAGE'; username: string; text: string; timestamp: number };
+  | { type: 'CHAT_MESSAGE'; username: string; text: string; timestamp: number }
+  | { type: 'PING' }
+  | { type: 'PONG' };

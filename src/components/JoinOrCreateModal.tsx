@@ -1,34 +1,26 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Crown, Users, ArrowRight, RotateCcw, BookOpen } from 'lucide-react';
+import { Crown, Users, ArrowRight, BookOpen } from 'lucide-react';
 import { sounds } from '@/lib/audio';
 
 interface JoinOrCreateModalProps {
   initialRoomCode?: string;
-  hasPreviousSession?: boolean;
-  previousRoomCode?: string;
-  previousUsername?: string;
   connectionError?: string;
   onCreateRoom: (username: string, totalRounds: number) => void;
   onJoinRoom: (roomCode: string, username: string) => void;
-  onResumeSession: () => void;
   onOpenRules: () => void;
 }
 
 export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
   initialRoomCode = '',
-  hasPreviousSession = false,
-  previousRoomCode = '',
-  previousUsername = '',
   connectionError,
   onCreateRoom,
   onJoinRoom,
-  onResumeSession,
   onOpenRules,
 }) => {
   const [mode, setMode] = useState<'join' | 'create'>(initialRoomCode ? 'join' : 'create');
-  const [username, setUsername] = useState(previousUsername || '');
+  const [username, setUsername] = useState('');
   const [roomCode, setRoomCode] = useState(initialRoomCode || '');
   const [totalRounds, setTotalRounds] = useState(3);
   const [error, setError] = useState('');
@@ -75,25 +67,6 @@ export const JoinOrCreateModal: React.FC<JoinOrCreateModalProps> = ({
           Black Queen • 150 Point Indian Card Game
         </p>
       </div>
-
-      {/* Reconnect Banner if previous session exists */}
-      {hasPreviousSession && previousRoomCode && (
-        <div className="mb-6 p-4 rounded-2xl bg-zinc-900/90 backdrop-blur-md border border-white/20 flex items-center justify-between shadow-xl relative z-10">
-          <div>
-            <div className="text-xs font-mono text-zinc-400 uppercase">Active Session Detected</div>
-            <div className="font-bold text-white text-sm">
-              Room: {previousRoomCode} ({previousUsername})
-            </div>
-          </div>
-          <button
-            onClick={onResumeSession}
-            className="px-4 py-2 bg-white text-black hover:bg-zinc-200 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 shadow"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Rejoin Game</span>
-          </button>
-        </div>
-      )}
 
       {/* Main Card */}
       <div className="bg-zinc-950/85 backdrop-blur-xl border border-zinc-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10">

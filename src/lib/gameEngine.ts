@@ -69,17 +69,7 @@ export function addPlayerToRoom(state: RoomState, playerInfo: { id: string; user
   );
 
   if (existingPlayer) {
-    // If the existing player is currently connected and has a different ID, reject duplicate name
-    if (existingPlayer.isConnected && existingPlayer.id !== playerInfo.id) {
-      throw new Error(`A player named "${existingPlayer.username}" is already connected in this room.`);
-    }
-
-    // In lobby, duplicate usernames are not allowed if already in the room with different connection
-    if (state.phase === 'lobby' && existingPlayer.id !== playerInfo.id) {
-      throw new Error(`A player named "${existingPlayer.username}" is already connected in this room.`);
-    }
-
-    // If game has already started and the player was disconnected (or reconnecting), allow them to resume their seat
+    // Reclaim seat and reconnect player (works in lobby or ongoing game)
     return reconnectPlayer(state, playerInfo.username, playerInfo.id);
   }
 

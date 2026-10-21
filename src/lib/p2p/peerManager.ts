@@ -20,6 +20,29 @@ import { botChooseCardToPlay, botChooseTrumpAndPartner, evaluateBotBid } from '.
 
 export type PeerStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
+const PEER_CONFIG = {
+  debug: 1,
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      {
+        urls: [
+          'turn:openrelay.metered.ca:80',
+          'turn:openrelay.metered.ca:443',
+          'turn:openrelay.metered.ca:443?transport=tcp',
+        ],
+        username: 'openrelay',
+        credential: 'openrelay',
+      },
+    ],
+    iceCandidatePoolSize: 10,
+  },
+};
+
 interface PeerConnectionMap {
   [peerId: string]: any; // DataConnection
 }
@@ -42,12 +65,50 @@ export class PeerGameManager {
   
   private botTimer: NodeJS.Timeout | null = null;
   private inactivityInterval: NodeJS.Timeout | null = null;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
   private trickTransitionTimer: NodeJS.Timeout | null = null;
   private revealTimer: NodeJS.Timeout | null = null;
+  private unloadHandler: (() => void) | null = null;
   private isDestroyed: boolean = false;
 
   constructor() {
     this.startInactivityChecker();
+    this.setupUnloadCleanup();
+  }
+
+  private setupUnloadCleanup() {
+    if (typeof window === 'undefined') return;
+    this.unloadHandler = () => {
+      try {
+        if (this.peer && !this.peer.destroyed) {
+          this.peer.destroy();
+        }
+      } catch {}
+    };
+    window.addEventListener('beforeunload', this.unloadHandler);
+    window.addEventListener('pagehide', this.unloadHandler);
+  }
+
+  private startHeartbeat() {
+    if (typeof window === 'undefined') return;
+    if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+    this.heartbeatInterval = setInterval(() => {
+      if (this.isDestroyed) return;
+      if (this.isHost) {
+        for (const peerId in this.connections) {
+          try {
+            const conn = this.connections[peerId];
+            if (conn && conn.open) {
+              conn.send({ type: 'PING' });
+            }
+          } catch {}
+        }
+      } else if (this.hostConnection && this.hostConnection.open) {
+        try {
+          this.hostConnection.send({ type: 'PING' });
+        } catch {}
+      }
+    }, 4000);
   }
 
   private startInactivityChecker() {
@@ -143,7 +204,7 @@ export class PeerGameManager {
   /**
    * Initializes host room
    */
-  public async initHost(roomCode: string, username: string, settings?: Partial<GameSettings>): Promise<void> {
+  public async initHost(roomCode: string, username: string, settings?: Partial<GameSettings>, retryCount = 0): Promise<void> {
     this.roomCode = roomCode.toUpperCase().trim();
     this.username = username.trim();
     this.isHost = true;
@@ -155,12 +216,11 @@ export class PeerGameManager {
 
     return new Promise((resolve, reject) => {
       try {
-        this.peer = new Peer(hostPeerId, {
-          debug: 1,
-        });
+        this.peer = new Peer(hostPeerId, PEER_CONFIG);
 
         this.peer.on('open', (id: string) => {
           this.notifyStatus('connected', 'Room created successfully');
+          this.startHeartbeat();
           
           // Check if restored state exists in localStorage
           let initialState: RoomState;
@@ -193,9 +253,23 @@ export class PeerGameManager {
         this.peer.on('error', (err: any) => {
           console.warn('Peer host error:', err);
           if (err.type === 'unavailable-id') {
-            // If already exists, maybe host refreshed. Try rejoining or reconnecting
-            this.notifyStatus('connected', 'Reconnected as Host');
-            resolve();
+            if (retryCount < 3 && !this.isDestroyed) {
+              this.notifyStatus('connecting', `Host session clearing, reconnecting (attempt ${retryCount + 1}/3)...`);
+              setTimeout(async () => {
+                try {
+                  if (this.peer && !this.peer.destroyed) {
+                    this.peer.destroy();
+                  }
+                  await this.initHost(roomCode, username, settings, retryCount + 1);
+                  resolve();
+                } catch (retryErr) {
+                  reject(retryErr);
+                }
+              }, 1200);
+            } else {
+              this.notifyStatus('error', 'Host session currently busy. Please wait a few seconds and try again.');
+              reject(err);
+            }
           } else {
             this.notifyStatus('error', err.message || 'Host connection error');
           }
@@ -223,9 +297,7 @@ export class PeerGameManager {
 
     return new Promise((resolve, reject) => {
       try {
-        this.peer = new Peer(clientPeerId, {
-          debug: 1,
-        });
+        this.peer = new Peer(clientPeerId, PEER_CONFIG);
 
         this.peer.on('open', () => {
           const hostPeerId = `kr-${this.roomCode}-host`;
@@ -243,27 +315,60 @@ export class PeerGameManager {
     });
   }
 
-  private connectToHost(hostPeerId: string, resolve: () => void, reject: (err: any) => void) {
+  private connectToHost(hostPeerId: string, resolve: () => void, reject: (err: any) => void, retryCount = 0) {
+    if (this.isDestroyed) return;
+
     const conn = this.peer.connect(hostPeerId, {
       reliable: true,
     });
 
     this.hostConnection = conn;
+    let hasReceivedState = false;
 
     conn.on('open', () => {
       this.notifyStatus('connected', 'Connected to room host');
-      // Send join or reconnect request
-      const msg: P2PMessage = {
-        type: 'JOIN_REQUEST',
-        username: this.username,
-        playerId: this.myPeerId,
-        isHost: false,
+      this.startHeartbeat();
+
+      const sendJoin = () => {
+        if (hasReceivedState || !this.hostConnection || !this.hostConnection.open) return;
+        const msg: P2PMessage = {
+          type: 'JOIN_REQUEST',
+          username: this.username,
+          playerId: this.myPeerId,
+          isHost: false,
+        };
+        try {
+          this.hostConnection.send(msg);
+        } catch (e) {
+          console.warn('Failed to send JOIN_REQUEST:', e);
+        }
       };
-      conn.send(msg);
+
+      // Send initial JOIN_REQUEST with small delay to let host SCTP stream settle
+      setTimeout(sendJoin, 60);
+
+      // If no SYNC_STATE is received within 750ms, retry sending JOIN_REQUEST up to 4 times
+      let joinRetries = 0;
+      const joinInterval = setInterval(() => {
+        if (hasReceivedState || this.isDestroyed || !this.hostConnection?.open) {
+          clearInterval(joinInterval);
+          return;
+        }
+        joinRetries++;
+        if (joinRetries > 4) {
+          clearInterval(joinInterval);
+          return;
+        }
+        sendJoin();
+      }, 750);
+
       resolve();
     });
 
     conn.on('data', (data: any) => {
+      if (data && data.type === 'SYNC_STATE') {
+        hasReceivedState = true;
+      }
       this.handleClientReceivedData(data);
     });
 
@@ -274,8 +379,15 @@ export class PeerGameManager {
 
     conn.on('error', (err: any) => {
       console.warn('Host connection error:', err);
-      this.notifyStatus('error', 'Could not connect to host');
-      reject(err);
+      if (retryCount < 3 && !this.isDestroyed) {
+        this.notifyStatus('connecting', `Connecting to host (attempt ${retryCount + 2}/4)...`);
+        setTimeout(() => {
+          this.connectToHost(hostPeerId, resolve, reject, retryCount + 1);
+        }, 1200 * (retryCount + 1));
+      } else {
+        this.notifyStatus('error', 'Could not connect to host. Please verify the room code and try again.');
+        reject(err);
+      }
     });
   }
 
@@ -318,9 +430,35 @@ export class PeerGameManager {
     const message = data as P2PMessage;
 
     switch (message.type) {
+      case 'PING': {
+        try {
+          conn.send({ type: 'PONG' });
+        } catch {}
+        break;
+      }
+
+      case 'PONG': {
+        // Keepalive acknowledged
+        break;
+      }
+
       case 'JOIN_REQUEST':
       case 'PLAYER_RECONNECT': {
         try {
+          // If a player with the same name was already registered, close old socket if different
+          const oldPlayer = this.currentState.players.find(
+            (p) => p.username.trim().toLowerCase() === message.username.trim().toLowerCase()
+          );
+          if (oldPlayer && oldPlayer.id !== message.playerId) {
+            if (this.connections[oldPlayer.id]) {
+              try {
+                this.connections[oldPlayer.id].close();
+              } catch {}
+              delete this.connections[oldPlayer.id];
+            }
+          }
+          this.connections[message.playerId] = conn;
+
           const updated = addPlayerToRoom(this.currentState, {
             id: message.playerId,
             username: message.username,
@@ -389,7 +527,16 @@ export class PeerGameManager {
    * Client receives updates from Host
    */
   private handleClientReceivedData(data: any) {
-    if (data.type === 'JOIN_ERROR') {
+    if (data.type === 'PING') {
+      try {
+        if (this.hostConnection && this.hostConnection.open) {
+          this.hostConnection.send({ type: 'PONG' });
+        }
+      } catch {}
+      return;
+    } else if (data.type === 'PONG') {
+      return;
+    } else if (data.type === 'JOIN_ERROR') {
       if (typeof window !== 'undefined') {
         try {
           localStorage.removeItem('kaali_raani_session');
@@ -683,8 +830,26 @@ export class PeerGameManager {
     if (this.revealTimer) clearTimeout(this.revealTimer);
     if (this.trickTransitionTimer) clearTimeout(this.trickTransitionTimer);
     if (this.inactivityInterval) clearInterval(this.inactivityInterval);
+    if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+    if (typeof window !== 'undefined' && this.unloadHandler) {
+      window.removeEventListener('beforeunload', this.unloadHandler);
+      window.removeEventListener('pagehide', this.unloadHandler);
+      this.unloadHandler = null;
+    }
+    for (const peerId in this.connections) {
+      try {
+        this.connections[peerId].close();
+      } catch {}
+    }
+    this.connections = {};
+    if (this.hostConnection) {
+      try {
+        this.hostConnection.close();
+      } catch {}
+      this.hostConnection = null;
+    }
     try {
-      if (this.peer) this.peer.destroy();
+      if (this.peer && !this.peer.destroyed) this.peer.destroy();
     } catch {}
   }
 }

@@ -41,31 +41,49 @@ function KaaliRaaniGame() {
     setIsCardsHidden((prev) => !prev);
   };
 
-  // Session persistence
-  const [savedSession, setSavedSession] = useState<SavedSession | null>(null);
-
   const managerRef = useRef<PeerGameManager | null>(null);
 
   useEffect(() => {
     // Check local storage for previous session with 15-min inactivity check
     if (typeof window !== 'undefined') {
       try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomParam = urlParams.get('room')?.toUpperCase().trim() || '';
+
         const stored = localStorage.getItem('kaali_raani_session');
         if (stored) {
           const parsed: SavedSession = JSON.parse(stored);
+
+          // If the user clicked a link with a different room code, don't auto-restore old session
+          if (roomParam && roomParam !== parsed.roomCode) {
+            return;
+          }
+
           const cachedStateStr = localStorage.getItem(`kr_state_${parsed.roomCode}`);
+          let cachedState: RoomState | null = null;
           if (cachedStateStr) {
             try {
-              const cachedState = JSON.parse(cachedStateStr);
-              if (cachedState.lastActiveAt && Date.now() - cachedState.lastActiveAt > ROOM_INACTIVITY_TIMEOUT_MS) {
+              cachedState = JSON.parse(cachedStateStr);
+              if (cachedState && cachedState.lastActiveAt && Date.now() - cachedState.lastActiveAt > ROOM_INACTIVITY_TIMEOUT_MS) {
                 localStorage.removeItem('kaali_raani_session');
                 localStorage.removeItem(`kr_state_${parsed.roomCode}`);
-                setSavedSession(null);
                 return;
               }
             } catch {}
           }
-          setSavedSession(parsed);
+
+          // Immediately restore ongoing game screen so user never sees the landing page or rejoin button
+          if (cachedState) {
+            setRoomState(cachedState);
+          }
+
+          // Auto-reconnect to room in the background
+          const mgr = initManager();
+          if (parsed.isHost) {
+            mgr.initHost(parsed.roomCode, parsed.username);
+          } else {
+            mgr.initClient(parsed.roomCode, parsed.username);
+          }
         }
       } catch {}
     }
@@ -91,7 +109,6 @@ function KaaliRaaniGame() {
           managerRef.current?.destroy();
           setManager(null);
           setRoomState(null);
-          setSavedSession(null);
           setPeerStatus('disconnected');
           setStatusMessage('Game room closed due to 15 minutes of inactivity.');
         }
@@ -120,7 +137,6 @@ function KaaliRaaniGame() {
 
     mgr.subscribeRoomEnded(() => {
       setRoomState(null);
-      setSavedSession(null);
       setPeerStatus('disconnected');
       setStatusMessage('The match has ended and the room has been cleared.');
     });
@@ -141,7 +157,6 @@ function KaaliRaaniGame() {
 
     const session: SavedSession = { roomCode: code, username, isHost: true };
     localStorage.setItem('kaali_raani_session', JSON.stringify(session));
-    setSavedSession(session);
 
     const mgr = initManager();
     await mgr.initHost(code, username, { totalRounds });
@@ -154,20 +169,22 @@ function KaaliRaaniGame() {
     const cleanCode = roomCode.toUpperCase().trim();
     const session: SavedSession = { roomCode: cleanCode, username, isHost: false };
     localStorage.setItem('kaali_raani_session', JSON.stringify(session));
-    setSavedSession(session);
+
+    // If cached state exists for this room, restore it immediately
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(`kr_state_${cleanCode}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && (!parsed.lastActiveAt || Date.now() - parsed.lastActiveAt <= ROOM_INACTIVITY_TIMEOUT_MS)) {
+            setRoomState(parsed);
+          }
+        }
+      } catch {}
+    }
 
     const mgr = initManager();
     await mgr.initClient(cleanCode, username);
-  };
-
-  const handleResumeSession = async () => {
-    if (!savedSession) return;
-    const mgr = initManager();
-    if (savedSession.isHost) {
-      await mgr.initHost(savedSession.roomCode, savedSession.username);
-    } else {
-      await mgr.initClient(savedSession.roomCode, savedSession.username);
-    }
   };
 
   const handleStartGame = () => {
@@ -194,7 +211,6 @@ function KaaliRaaniGame() {
     managerRef.current?.destroy();
     setManager(null);
     setRoomState(null);
-    setSavedSession(null);
     setPeerStatus('disconnected');
     setStatusMessage('Match ended. Room cleared.');
   };
@@ -283,13 +299,9 @@ function KaaliRaaniGame() {
           <div className="w-full flex items-center justify-center lg:justify-start lg:pl-16 xl:pl-28 2xl:pl-36">
             <JoinOrCreateModal
               initialRoomCode={initialRoomFromUrl}
-              hasPreviousSession={!!savedSession}
-              previousRoomCode={savedSession?.roomCode}
-              previousUsername={savedSession?.username}
               connectionError={peerStatus === 'error' ? statusMessage : undefined}
               onCreateRoom={handleCreateRoom}
               onJoinRoom={handleJoinRoom}
-              onResumeSession={handleResumeSession}
               onOpenRules={() => setIsRulesOpen(true)}
             />
           </div>
