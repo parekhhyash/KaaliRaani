@@ -57,7 +57,7 @@ export const RoundEndModal: React.FC<RoundEndModalProps> = ({
       <div className="bg-zinc-950 border border-zinc-800 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header Banner */}
         <div
-          className={`p-6 text-center border-b ${
+          className={`p-5 text-center border-b ${
             biddingTeamWon
               ? 'bg-zinc-900 border-zinc-700'
               : 'bg-zinc-950 border-zinc-800'
@@ -66,8 +66,8 @@ export const RoundEndModal: React.FC<RoundEndModalProps> = ({
           <div className="text-xs uppercase font-mono tracking-widest text-zinc-400 mb-1">
             Round {roundNumber} of {totalRounds} Complete
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-            {biddingTeamWon ? '🎉 BID MADE — BIDDING TEAM WINS!' : '🛡️ BID FAILED — OPPOSITION WINS!'}
+          <h2 className="text-base sm:text-lg font-bold tracking-wider uppercase">
+            {biddingTeamWon ? 'BIDDERS WIN' : 'DEFENDERS WIN'}
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400 mt-1">
             Target was <strong className="text-white font-mono">{bidAmount} points</strong>. Declarer team scored{' '}
